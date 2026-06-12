@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Journal</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#1c1c1e">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Nunito:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Merriweather:ital,wght@0,300;0,400;0,700;1,300;1,400&family=Lora:ital,wght@0,400;0,600;1,400&family=Inter:wght@300;400;500;600;700&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --font:'Plus Jakarta Sans',sans-serif;
+  --bg:#1c1c1e;--bg2:#252527;--bg3:#2c2c2e;--bg4:#3a3a3c;
+  --border:#2c2c2e;--border2:#3a3a3c;
+  --accent:#4a9eff;--accent2:#30d158;--danger:#ff453a;--gold:#ffd60a;
+  --text:#e5e5e7;--text2:#aeaeb2;--text3:#636366;--text4:#48484a;
+  --sidebar-w:210px;--list-w:270px;
+}
+body{font-family:var(--font);background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;display:flex;flex-direction:column;font-size:14px;line-height:1.5}
+button{cursor:pointer;font-family:var(--font);border:none;background:none;color:var(--text)}
+input,textarea,select{font-family:var(--font);background:none;border:none;outline:none;color:var(--text)}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:4px}
+
+/* ── LAYOUT ── */
+#layout{display:flex;height:100dvh;overflow:hidden}
+
+/* ── SIDEBAR ── */
+#sidebar{width:var(--sidebar-w);min-width:var(--sidebar-w);background:#1a1a1c;border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;flex-shrink:0}
+#sHead{padding:20px 14px 8px;font-size:11px;font-weight:700;color:var(--text3);letter-spacing:.1em}
+.sItem{display:flex;align-items:center;gap:9px;padding:8px 14px;border-radius:7px;margin:1px 6px;font-size:13px;color:var(--text2);cursor:pointer;transition:background .1s;user-select:none}
+.sItem:hover{background:var(--bg3)}
+.sItem.on{background:rgba(74,158,255,.2);color:var(--accent)}
+.sBadge{margin-left:auto;font-size:11px;color:var(--text3)}
+.sDivider{height:1px;background:var(--border);margin:8px 10px}
+.sSect{padding:10px 14px 3px;font-size:10px;color:var(--text3);font-weight:700;letter-spacing:.1em;text-transform:uppercase}
+
+/* ── ENTRY LIST ── */
+#entryList{width:var(--list-w);min-width:var(--list-w);background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0}
+#listHead{padding:10px 12px 6px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+#listHeadTitle{font-size:14px;font-weight:600}
+#searchWrap{padding:0 10px 6px;flex-shrink:0}
+#searchInput{width:100%;background:var(--bg4);border-radius:8px;padding:7px 10px;font-size:13px}
+#searchInput::placeholder{color:var(--text3)}
+
+/* filter/sort bar */
+#filterBar{display:flex;align-items:center;gap:4px;padding:0 10px 8px;flex-shrink:0;flex-wrap:wrap}
+.fPill{padding:3px 9px;border-radius:12px;font-size:11px;border:1px solid var(--border2);color:var(--text3);background:none;cursor:pointer;transition:all .1s;white-space:nowrap}
+.fPill:hover{background:var(--bg3)}
+.fPill.on{background:rgba(74,158,255,.2);border-color:var(--accent);color:var(--accent)}
+.fPill.gold.on{background:rgba(255,214,10,.15);border-color:var(--gold);color:var(--gold)}
+.fPill.pin.on{background:rgba(48,209,88,.15);border-color:var(--accent2);color:var(--accent2)}
+#sortSelect{background:var(--bg4);border:1px solid var(--border2);border-radius:8px;padding:3px 7px;font-size:11px;color:var(--text2);cursor:pointer;margin-left:auto}
+#groupSelect{background:var(--bg4);border:1px solid var(--border2);border-radius:8px;padding:3px 7px;font-size:11px;color:var(--text2);cursor:pointer}
+
+#scroll{flex:1;overflow-y:auto}
+.dGroup{padding:8px 12px 2px;font-size:11px;color:var(--text3);font-weight:700;letter-spacing:.04em;display:flex;align-items:center;gap:5px}
+.eCard{padding:9px 12px;border-radius:7px;margin:1px 6px;cursor:pointer;transition:background .1s;user-select:none;position:relative}
+.eCard:hover{background:var(--bg3)}
+.eCard.sel{background:rgba(74,158,255,.18)}
+.eRow{display:flex;gap:8px;align-items:flex-start}
+.eDateCol{text-align:center;min-width:30px;flex-shrink:0}
+.eDow{font-size:9px;color:var(--text3);font-weight:700;text-transform:uppercase}
+.eDay{font-size:20px;font-weight:200;color:var(--text2);line-height:1.1}
+.eInfo{flex:1;min-width:0}
+.eTitle{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text)}
+.eSnip{font-size:12px;color:var(--text2);margin-top:2px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.4}
+.eMeta{font-size:11px;color:var(--text3);margin-top:4px;display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.eTag{background:var(--bg4);color:var(--text2);padding:1px 6px;border-radius:8px;font-size:10px}
+.ePinIcon{position:absolute;top:8px;right:10px;font-size:11px;opacity:.7}
+
+/* OTD */
+#otdWrap{margin:0 8px 6px;background:var(--bg2);border:1px solid var(--border2);border-radius:9px;padding:11px 12px;display:none;flex-shrink:0}
+#otdWrap.show{display:block}
+.otdHead{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--accent);font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:7px}
+.otdItem{padding:6px 0;border-top:1px solid var(--border);cursor:pointer}
+.otdItem:hover .otdTitle{color:var(--accent)}
+.otdYr{font-size:10px;color:var(--text3);margin-bottom:1px}
+.otdTitle{font-size:12px;font-weight:500;color:var(--text)}
+.otdSnip{font-size:11px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ── MAIN ── */
+#main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--bg);min-width:0}
+#emptyState{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--text3);padding:40px;text-align:center}
+.bigIcon{font-size:52px}.bigTitle{font-size:17px;font-weight:600;color:var(--text2)}.bigSub{font-size:13px;max-width:220px;line-height:1.6}
+
+/* top bar */
+.tBar{display:flex;align-items:center;padding:10px 16px;border-bottom:1px solid var(--border);gap:8px;flex-shrink:0;min-height:46px}
+.tBarTitle{flex:1;text-align:center;font-size:13px;color:var(--text2);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.btn{padding:5px 12px;border-radius:7px;font-size:13px;font-weight:500;transition:opacity .1s;white-space:nowrap}
+.btn:hover{opacity:.8}
+.btnP{background:var(--accent);color:#fff}
+.btnG{border:1px solid var(--border2);color:var(--text2)}
+.btnD{border:1px solid var(--danger);color:var(--danger)}
+.btnIcon{padding:5px 8px;border-radius:7px;font-size:16px;border:1px solid var(--border2);color:var(--text2);line-height:1}
+.btnIcon.on{color:var(--gold);border-color:var(--gold)}
+.btnIcon.pin-on{color:var(--accent2);border-color:var(--accent2)}
+
+/* ── READ ── */
+#readView{display:none;flex-direction:column;flex:1;overflow:hidden}
+#readScroll{flex:1;overflow-y:auto;padding:32px 52px 60px;max-width:760px;width:100%}
+#rMeta{font-size:12px;color:var(--text3);margin-bottom:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+#rLocation{font-size:11px;color:var(--text3);display:flex;align-items:center;gap:3px}
+#rMood{font-size:22px;margin-bottom:4px}
+#rTitle{font-size:28px;font-weight:700;color:var(--text);margin-bottom:10px;line-height:1.2;font-family:var(--font)}
+#rTags{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:16px}
+.rTag{background:rgba(74,158,255,.15);color:var(--accent);padding:3px 9px;border-radius:10px;font-size:11px}
+#rPhotos{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+#rPhotos img{max-height:200px;max-width:100%;border-radius:8px;object-fit:cover;cursor:pointer}
+#rBody{font-size:16px;line-height:1.85;color:#c7c7cc;font-family:var(--font)}
+#rBody h1{font-size:22px;font-weight:700;color:var(--text);margin:16px 0 6px}
+#rBody h2{font-size:18px;font-weight:600;color:var(--text);margin:12px 0 4px}
+#rBody blockquote{border-left:3px solid var(--accent);padding-left:14px;color:var(--text2);font-style:italic;margin:10px 0}
+#rBody ul,#rBody ol{padding-left:22px;margin:6px 0}
+#rBody li{margin:3px 0}
+#rBody hr{border:none;border-top:1px solid var(--border);margin:18px 0}
+#rBody strong{color:var(--text)}
+#rBody a{color:var(--accent)}
+
+/* ── WRITE ── */
+#writeView{display:none;flex-direction:column;flex:1;overflow:hidden}
+#tmplPanel{display:none;background:#1a1a1c;border-bottom:1px solid var(--border);flex-shrink:0;max-height:55vh;overflow-y:auto}
+#tmplPanel.show{display:block}
+.tmplPanelInner{padding:14px}
+.tmplGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:10px}
+.tCard{background:var(--bg3);border:1px solid var(--border2);border-radius:9px;padding:11px 9px;cursor:pointer;transition:border-color .12s;text-align:center}
+.tCard:hover,.tCard.preview{border-color:var(--accent)}
+.tCardIcon{font-size:18px;margin-bottom:4px}
+.tCardName{font-size:11px;font-weight:600;color:var(--text);line-height:1.3}
+/* template preview */
+#tmplPreview{background:var(--bg2);border:1px solid var(--border2);border-radius:9px;padding:14px;margin-bottom:10px;display:none}
+#tmplPreview.show{display:block}
+#tmplPreviewTitle{font-size:13px;font-weight:600;color:var(--text);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+#tmplPreviewBody{font-size:13px;color:var(--text2);white-space:pre-wrap;line-height:1.7;font-family:var(--font)}
+#tmplPreviewActions{display:flex;gap:8px;margin-top:10px}
+
+/* toolbar */
+#toolbar{display:flex;align-items:center;gap:1px;padding:5px 12px;border-bottom:1px solid var(--border);flex-shrink:0;flex-wrap:wrap;background:#1a1a1c}
+.tb{padding:5px 7px;border-radius:5px;font-size:13px;color:var(--text2);transition:background .1s;line-height:1;min-width:28px;text-align:center}
+.tb:hover{background:var(--bg4);color:var(--text)}
+.tbSep{width:1px;height:16px;background:var(--border2);margin:0 3px;flex-shrink:0}
+
+/* editor */
+#edScroll{flex:1;overflow-y:auto;padding:24px 52px 12px}
+#titleInput{font-size:26px;font-weight:700;width:100%;color:var(--text);padding-bottom:12px;border-bottom:1px solid var(--border);margin-bottom:14px;display:block;font-family:var(--font)}
+#titleInput::placeholder{color:var(--text3)}
+#editor{min-height:260px;font-size:16px;line-height:1.85;color:#c7c7cc;outline:none;width:100%;font-family:var(--font)}
+#editor:empty::before{content:attr(data-placeholder);color:var(--text3);pointer-events:none}
+#editor h1{font-size:22px;font-weight:700;color:var(--text);margin:16px 0 6px}
+#editor h2{font-size:18px;font-weight:600;color:var(--text);margin:12px 0 4px}
+#editor blockquote{border-left:3px solid var(--accent);padding-left:14px;color:var(--text2);font-style:italic;margin:10px 0}
+#editor ul,#editor ol{padding-left:22px;margin:6px 0}
+#editor li{margin:3px 0}
+#editor hr{border:none;border-top:1px solid var(--border);margin:18px 0}
+#editor strong{color:var(--text)}
+#editor a{color:var(--accent)}
+
+/* photos strip */
+#photoStrip{display:flex;gap:8px;flex-wrap:wrap;padding:10px 52px 0;flex-shrink:0}
+#photoStrip .photo-thumb{position:relative;display:inline-block}
+#photoStrip img{height:72px;width:72px;object-fit:cover;border-radius:8px;border:1px solid var(--border2)}
+#photoStrip .rmPhoto{position:absolute;top:-5px;right:-5px;background:var(--danger);color:#fff;border-radius:50%;width:18px;height:18px;font-size:11px;display:flex;align-items:center;justify-content:center;cursor:pointer;border:none}
+
+/* prompt bar */
+#promptBar{display:none;background:rgba(74,158,255,.08);border-left:3px solid var(--accent);border-radius:0 6px 6px 0;padding:9px 12px;margin-bottom:16px;font-size:13px;color:var(--text2);font-style:italic;flex-direction:row;justify-content:space-between;align-items:flex-start;gap:8px}
+#promptBar.show{display:flex}
+#promptBar button{color:var(--text3);font-size:15px;flex-shrink:0}
+
+/* voice */
+#voiceWrap{display:none;padding:10px 16px;border-top:1px solid var(--border);background:#1a1a1c;flex-shrink:0}
+#voiceWrap.show{display:block}
+.vLabel{font-size:10px;color:var(--accent);font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px}
+#vTranscript{font-size:13px;color:var(--text2);font-style:italic;min-height:18px;margin-bottom:8px;line-height:1.5}
+.vBtns{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+.recOff{background:var(--accent);color:#fff;padding:5px 14px;border-radius:14px;font-size:13px}
+.recOn{background:var(--danger);color:#fff;padding:5px 14px;border-radius:14px;font-size:13px}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.pulse{animation:pulse 1s infinite}
+
+/* bottom bar */
+#botBar{padding:8px 14px 10px;border-top:1px solid var(--border);flex-shrink:0;background:var(--bg)}
+#moodRow{display:flex;gap:3px;flex-wrap:wrap;margin-bottom:8px;align-items:center}
+.mBtn{font-size:14px;padding:3px 7px;border-radius:14px;border:1px solid transparent;color:var(--text2);background:none;line-height:1;transition:all .1s;cursor:pointer}
+.mBtn:hover{background:var(--bg3)}
+.mBtn.on{background:var(--bg3);border-color:var(--accent);color:var(--text)}
+#botRow2{display:flex;align-items:center;gap:8px}
+#tagsInput{background:var(--bg3);border-radius:6px;padding:5px 10px;font-size:12px;flex:1}
+#tagsInput::placeholder{color:var(--text3)}
+#wCount{font-size:11px;color:var(--text3);white-space:nowrap}
+#locDisplay{font-size:11px;color:var(--text3);display:flex;align-items:center;gap:3px;white-space:nowrap}
+
+/* ── CALENDAR ── */
+#calView{display:none;flex:1;overflow-y:auto;padding:24px}
+.calHead{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;max-width:400px;margin-left:auto;margin-right:auto}
+.calTitle{font-size:15px;font-weight:600}
+.calGrid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;max-width:400px;margin:0 auto}
+.cDow{text-align:center;font-size:10px;color:var(--text3);font-weight:700;text-transform:uppercase;padding:4px 0}
+.cDay{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:8px;font-size:12px;color:var(--text4);cursor:default}
+.cDay.has{background:var(--bg2);border:1px solid var(--border2);cursor:pointer;color:var(--text)}
+.cDay.has:hover{border-color:var(--accent)}
+.cDay.today{border:2px solid var(--accent)!important;color:var(--accent);font-weight:700}
+.cMood{font-size:9px;line-height:1;margin-top:1px}
+.cDot{width:4px;height:4px;border-radius:50%;background:var(--accent);margin-top:2px}
+
+/* ── SETTINGS ── */
+#settingsView{display:none;flex-direction:column;flex:1;overflow:hidden}
+#settingsScroll{flex:1;overflow-y:auto;padding:24px 32px}
+.settSection{margin-bottom:28px}
+.settTitle{font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px}
+.settRow{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)}
+.settLabel{font-size:14px;color:var(--text)}
+.settSub{font-size:12px;color:var(--text3);margin-top:2px}
+.settControl select,.settControl input[type=range]{background:var(--bg3);border:1px solid var(--border2);border-radius:7px;padding:5px 10px;font-size:13px;color:var(--text);min-width:150px;cursor:pointer}
+.fontPreview{font-size:15px;color:var(--text2);margin-top:6px;padding:10px 14px;background:var(--bg2);border-radius:8px;border:1px solid var(--border)}
+.viewToggle{display:flex;gap:4px}
+.vTogBtn{padding:5px 12px;border-radius:7px;font-size:12px;border:1px solid var(--border2);color:var(--text3);background:none;cursor:pointer}
+.vTogBtn.on{background:rgba(74,158,255,.2);border-color:var(--accent);color:var(--accent)}
+
+/* ── TEMPLATE MANAGER ── */
+#tmgrView{display:none;flex-direction:column;flex:1;overflow:hidden}
+#tmgrScroll{flex:1;overflow-y:auto;padding:16px}
+.tmgrRow{display:flex;align-items:center;gap:9px;padding:10px 0;border-bottom:1px solid var(--border)}
+.tmgrIcon{font-size:18px}
+.tmgrInfo{flex:1;min-width:0}
+.tmgrName{font-size:13px;color:var(--text)}
+.tmgrDesc{font-size:11px;color:var(--text3);margin-top:1px}
+.sBtn{padding:4px 10px;border-radius:6px;font-size:12px;border:1px solid var(--border2);color:var(--text2);background:none;cursor:pointer}
+.sBtn:hover{background:var(--bg3)}
+.sBtnD{border-color:var(--danger);color:var(--danger)}
+#tmgrForm{display:none;background:var(--bg2);border-radius:10px;padding:14px;margin-top:12px;border:1px solid var(--border2)}
+.fLabel{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px;font-weight:700;display:block}
+.fInput{width:100%;background:var(--bg4);border:1px solid var(--border);border-radius:7px;padding:7px 10px;font-size:13px;color:var(--text);outline:none;margin-bottom:9px}
+.fTextarea{width:100%;background:var(--bg4);border:1px solid var(--border);border-radius:7px;padding:7px 10px;font-size:13px;color:var(--text);outline:none;min-height:120px;resize:vertical;font-family:var(--font);margin-bottom:9px}
+
+/* lightbox */
+#lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:999;align-items:center;justify-content:center;cursor:zoom-out}
+#lightbox.show{display:flex}
+#lightbox img{max-width:90vw;max-height:90vh;border-radius:10px;object-fit:contain}
+
+/* ── TEMPLATE PROMPT CHIPS ── */
+.tmpl-chip{
+  display:inline-block;
+  background:#2a2a2e;
+  border:1px solid var(--border2);
+  border-radius:6px;
+  padding:3px 10px;
+  font-size:11px;
+  font-weight:700;
+  color:var(--text3);
+  letter-spacing:.07em;
+  text-transform:uppercase;
+  margin:8px 0 2px;
+  cursor:default;
+  user-select:none;
+}
+#editor .tmpl-chip{
+  display:block;
+  margin:12px 0 4px;
+  pointer-events:none;
+}
+#editor p{margin:0;min-height:1.4em;}
+
+/* ── FULLSCREEN ── */
+#layout.fullscreen #sidebar,
+#layout.fullscreen #entryList{display:none!important}
+#layout.fullscreen #main{flex:1}
+#fsBtn{font-size:16px;padding:5px 8px;border-radius:7px;border:1px solid var(--border2);color:var(--text2);background:none;cursor:pointer;transition:background .1s}
+#fsBtn:hover{background:var(--bg3)}
+#fsBtn.on{background:rgba(74,158,255,.15);border-color:var(--accent);color:var(--accent)}
+
+/* ── MOBILE ── */
+@media(max-width:700px){
+  #sidebar{display:none!important}
+  #entryList{width:100%!important;min-width:0!important;border-right:none}
+  #main{display:none}
+  #layout.showMain #entryList{display:none!important}
+  #layout.showMain #main{display:flex!important;width:100%}
+  /* mobile bottom nav */
+  #mobileNav{display:flex;position:fixed;bottom:0;left:0;right:0;background:#1a1a1c;border-top:1px solid var(--border);z-index:100;padding:0}
+  .mNavBtn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 4px;font-size:10px;color:var(--text3);cursor:pointer;gap:2px;border:none;background:none}
+  .mNavBtn span:first-child{font-size:20px}
+  .mNavBtn.on{color:var(--accent)}
+  #layout{padding-bottom:56px}
+  .tmplGrid{grid-template-columns:1fr 1fr!important}
+  #edScroll{padding:16px 18px 12px}
+  #readScroll{padding:20px 18px 80px}
+  #photoStrip{padding:10px 18px 0}
+  .tBar{padding:8px 12px;gap:6px}
+  .btn{padding:5px 9px;font-size:12px}
+  #filterBar{gap:3px}
+  #toolbar{padding:4px 8px;gap:0}
+  .tb{padding:4px 5px;min-width:24px;font-size:12px}
+  #rBarTitle{display:none}
+  #botBar{padding:6px 10px 8px}
+}
+@media(min-width:701px){
+  #mobileNav{display:none!important}
+}
+</style>
+</head>
+<body>
+<div id="layout">
+
+<!-- SIDEBAR -->
+<div id="sidebar">
+  <div id="sHead">JOURNAL</div>
+  <div class="sItem on" id="sAll" onclick="sNav('all')"><span>📖</span>All Entries<span class="sBadge" id="sBadge">0</span></div>
+  <div class="sItem" id="sFav" onclick="sNav('fav')"><span>⭐</span>Favourites</div>
+  <div class="sItem" id="sPin" onclick="sNav('pin')"><span>📌</span>Pinned</div>
+  <div class="sItem" id="sCal" onclick="sNav('cal')"><span>📅</span>Calendar</div>
+  <div class="sDivider"></div>
+  <div class="sSect">Tools</div>
+  <div class="sItem" id="sTmgr" onclick="sNav('tmgr')"><span>📋</span>My Templates</div>
+  <div class="sItem" id="sSettings" onclick="sNav('settings')"><span>⚙️</span>Settings</div>
+</div>
+
+<!-- ENTRY LIST -->
+<div id="entryList">
+  <div id="listHead">
+    <span id="listHeadTitle">All Entries</span>
+    <button onclick="startNew()" style="font-size:24px;color:var(--accent);line-height:1;padding:0 4px">+</button>
+  </div>
+  <div id="searchWrap"><input id="searchInput" placeholder="Search…" oninput="renderList()"></div>
+  <div id="filterBar">
+    <button class="fPill" id="fAll" onclick="setFilter('all')">All</button>
+    <button class="fPill gold" id="fFav" onclick="setFilter('fav')">⭐ Fav</button>
+    <button class="fPill pin" id="fPin" onclick="setFilter('pin')">📌 Pinned</button>
+    <select id="groupSelect" onchange="renderList()" title="Group by">
+      <option value="date">By Date</option>
+      <option value="mood">By Mood</option>
+      <option value="tag">By Tag</option>
+      <option value="none">No Grouping</option>
+    </select>
+    <select id="sortSelect" onchange="renderList()" title="Sort by">
+      <option value="newest">Newest</option>
+      <option value="oldest">Oldest</option>
+      <option value="title">Title A–Z</option>
+      <option value="wc">Word Count</option>
+    </select>
+  </div>
+  <div id="otdWrap"></div>
+  <div id="scroll"></div>
+</div>
+
+<!-- MAIN -->
+<div id="main">
+
+  <div id="emptyState">
+    <div class="bigIcon">📖</div>
+    <div class="bigTitle">Your journal is empty</div>
+    <div class="bigSub">Every entry is a snapshot of a version of you.</div>
+    <button class="btn btnP" style="margin-top:12px" onclick="startNew()">Write your first entry</button>
+  </div>
+
+  <div id="calView"></div>
+
+  <!-- READ -->
+  <div id="readView">
+    <div class="tBar">
+      <button class="btn btnG" onclick="backToList()">← Back</button>
+      <span class="tBarTitle" id="rBarTitle"></span>
+      <button class="btnIcon" id="favBtn" title="Favourite" onclick="toggleFav()">⭐</button>
+      <button class="btnIcon" id="pinBtn" title="Pin" onclick="togglePin()">📌</button>
+      <button class="btn btnG" onclick="startEdit()">Edit</button>
+      <button class="btn btnD" onclick="deleteEntry()">Delete</button>
+      <button id="fsBtn" title="Fullscreen" onclick="toggleFullscreen()">⛶</button>
+    </div>
+    <div id="readScroll">
+      <div id="rMeta"></div>
+      <div id="rMood"></div>
+      <div id="rLocation"></div>
+      <div id="rTitle"></div>
+      <div id="rTags"></div>
+      <div id="rPhotos"></div>
+      <div id="rBody"></div>
+    </div>
+  </div>
+
+  <!-- WRITE -->
+  <div id="writeView">
+    <div class="tBar">
+      <button class="btn btnG" onclick="cancelWrite()">Cancel</button>
+      <span class="tBarTitle" id="wStatus" style="font-size:12px;color:var(--text3)"></span>
+      <button class="btn btnG" style="font-size:12px" onclick="toggleTmpl()">📋 Template</button>
+      <button class="btn btnP" onclick="saveEntry()">Done</button>
+      <button id="fsBtnW" title="Fullscreen" onclick="toggleFullscreen()" style="font-size:16px;padding:5px 8px;border-radius:7px;border:1px solid var(--border2);color:var(--text2);background:none;cursor:pointer">⛶</button>
+    </div>
+
+    <!-- Template panel -->
+    <div id="tmplPanel">
+      <div class="tmplPanelInner">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <span style="font-size:13px;font-weight:600">Choose a template</span>
+          <button onclick="toggleTmpl()" style="color:var(--text3);font-size:16px">✕</button>
+        </div>
+        <div class="tmplGrid" id="tmplGrid"></div>
+        <!-- live preview -->
+        <div id="tmplPreview">
+          <div id="tmplPreviewTitle"></div>
+          <div id="tmplPreviewBody"></div>
+          <div id="tmplPreviewActions">
+            <button class="btn btnP" id="tmplUseBtn" onclick="usePreviewedTmpl()">Use this template</button>
+            <button class="btn btnG" onclick="clearPreview()">Back</button>
+          </div>
+        </div>
+        <button class="btn btnG" style="width:100%;font-size:12px;margin-top:6px" onclick="toggleTmpl();sNav('tmgr')">✏️ Manage my templates</button>
+      </div>
+    </div>
+
+    <div id="toolbar">
+      <button class="tb" onmousedown="event.preventDefault()" onclick="fmt('bold')" title="Bold"><b>B</b></button>
+      <button class="tb" onmousedown="event.preventDefault()" onclick="fmt('italic')" title="Italic"><i>I</i></button>
+      <button class="tb" onmousedown="event.preventDefault()" onclick="fmt('underline')" title="Underline"><u>U</u></button>
+      <button class="tb" onmousedown="event.preventDefault()" onclick="fmt('strikeThrough')" title="Strike"><s>S</s></button>
+      <div class="tbSep"></div>
+      <button class="tb" onmousedown="event.preventDefault()" onclick="fmt('formatBlock','h1')" title="H1">H1</button>
+      <button class="tb" onmousedown="event.preventDefault()" onclick="fmt('formatBlock','h2')" title="H2">H2</button>
+      <div class="tbSep"></div>
+      <button class="tb" onmousedown="event.preventDefault()" onclick="fmt('insertUnorderedList')" title="Bullets">• ≡</button>
+      <button class="tb" onmousedown="event.preventDefault()" onclick="fmt('insertOrderedList')" title="Numbered">1. ≡</button>
+      <button class="tb" onmousedown="event.preventDefault()" onclick="doBlockquote()" title="Quote">❝</button>
+      <button class="tb" onmousedown="event.preventDefault()" onclick="doHR()" title="Divider">—</button>
+      <button class="tb" onmousedown="event.preventDefault()" onclick="doLink()" title="Link">🔗</button>
+      <div class="tbSep"></div>
+      <button class="tb" onclick="triggerPhoto()" title="Add photo">📷</button>
+      <button class="tb" onclick="getLocation()" title="Add location">📍</button>
+      <div style="flex:1"></div>
+      <span id="wCount" style="font-size:11px;color:var(--text3)">0 words</span>
+      <button class="tb" onclick="toggleVoice()" title="Voice note" style="margin-left:6px">🎙</button>
+    </div>
+    <input type="file" id="photoInput" accept="image/*" multiple style="display:none" onchange="handlePhotos(this)">
+    <div id="photoStrip"></div>
+
+    <div id="edScroll">
+      <div id="promptBar"><span id="promptTxt"></span><button onclick="g('promptBar').classList.remove('show')">✕</button></div>
+      <input id="titleInput" placeholder="Title…">
+      <div id="editor" contenteditable="true" data-placeholder="What's on your mind…" oninput="wcUpdate()"></div>
+    </div>
+
+    <div id="voiceWrap">
+      <div class="vLabel">🎙 Voice Note</div>
+      <div id="vTranscript">Tap Record to begin…</div>
+      <div id="vAudio"></div>
+      <div class="vBtns">
+        <button id="recBtn" class="recOff" onclick="toggleRec()">Record</button>
+        <button id="appendBtn" class="sBtn" style="display:none" onclick="appendTranscript()">+ Add to entry</button>
+      </div>
+    </div>
+
+    <div id="botBar">
+      <div id="moodRow"></div>
+      <div id="botRow2">
+        <input id="tagsInput" placeholder="Tags: growth, work…">
+        <span id="locDisplay"></span>
+        <span id="wCount2" style="font-size:11px;color:var(--text3);white-space:nowrap"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- TEMPLATE MANAGER -->
+  <div id="tmgrView">
+    <div class="tBar">
+      <button class="btn btnG" onclick="sNav('all')">← Back</button>
+      <span style="flex:1;font-size:14px;font-weight:600">My Templates</span>
+      <button class="btn btnP" onclick="newTmpl()">+ New</button>
+    </div>
+    <div id="tmgrScroll">
+      <div id="tmgrList"></div>
+      <div id="tmgrForm">
+        <div style="font-size:10px;color:var(--accent);font-weight:700;letter-spacing:.07em;margin-bottom:10px;text-transform:uppercase" id="tmgrFTitle">NEW TEMPLATE</div>
+        <div style="display:flex;gap:8px">
+          <div style="width:66px"><label class="fLabel">Icon</label><input class="fInput" id="fIcon" value="📝" style="width:66px"></div>
+          <div style="flex:1"><label class="fLabel">Name</label><input class="fInput" id="fName" placeholder="Template name"></div>
+        </div>
+        <label class="fLabel">Description</label><input class="fInput" id="fDesc" placeholder="Short description (optional)">
+        <label class="fLabel">Body</label><textarea class="fTextarea" id="fBody" placeholder="Template content…"></textarea>
+        <div style="display:flex;gap:8px">
+          <button class="btn btnP" onclick="saveTmpl()">Save template</button>
+          <button class="btn btnG" onclick="cancelTmpl()">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div id="settingsView">
+    <div class="tBar">
+      <button class="btn btnG" onclick="sNav('all')">← Back</button>
+      <span style="flex:1;font-size:14px;font-weight:600">Settings</span>
+    </div>
+    <div id="settingsScroll">
+      <div class="settSection">
+        <div class="settTitle">Appearance</div>
+        <div class="settRow">
+          <div><div class="settLabel">Font</div><div class="settSub">Choose your writing font</div></div>
+          <div class="settControl">
+            <select id="fontSelect" onchange="applyFont(this.value)">
+              <option value="Plus Jakarta Sans">Plus Jakarta Sans</option>
+              <option value="DM Sans">DM Sans</option>
+              <option value="Nunito">Nunito</option>
+              <option value="Inter">Inter</option>
+              <option value="Lora">Lora (serif)</option>
+              <option value="Merriweather">Merriweather (serif)</option>
+            </select>
+          </div>
+        </div>
+        <div class="fontPreview" id="fontPreview">The feeling is the secret. What you feel today, you create tomorrow.</div>
+        <div class="settRow">
+          <div><div class="settLabel">Font Size</div><div class="settSub" id="fontSizeLabel">16px</div></div>
+          <div class="settControl"><input type="range" id="fontSizeRange" min="13" max="22" value="16" oninput="applyFontSize(this.value)"></div>
+        </div>
+        <div class="settRow">
+          <div><div class="settLabel">Entry List View</div><div class="settSub">How entries appear in the list</div></div>
+          <div class="viewToggle">
+            <button class="vTogBtn on" id="vCompact" onclick="setListView('compact')">Compact</button>
+            <button class="vTogBtn" id="vComfy" onclick="setListView('comfy')">Comfy</button>
+          </div>
+        </div>
+      </div>
+      <div class="settSection">
+        <div class="settTitle">Editor</div>
+        <div class="settRow">
+          <div><div class="settLabel">Line Height</div><div class="settSub" id="lineHLabel">1.85</div></div>
+          <div class="settControl"><input type="range" id="lineHRange" min="140" max="220" value="185" oninput="applyLineH(this.value)"></div>
+        </div>
+        <div class="settRow">
+          <div><div class="settLabel">Show daily prompt</div><div class="settSub">Show writing prompt on new entries</div></div>
+          <div class="settControl">
+            <select id="promptToggle" onchange="saveSett()">
+              <option value="1">On</option>
+              <option value="0">Off</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="settSection">
+        <div class="settTitle">Data</div>
+        <div class="settRow">
+          <div><div class="settLabel">Export entries</div><div class="settSub">Download as JSON backup</div></div>
+          <button class="btn btnG" onclick="exportData()">Export JSON</button>
+        </div>
+        <div class="settRow">
+          <div><div class="settLabel">Import entries</div><div class="settSub">Restore from JSON backup</div></div>
+          <button class="btn btnG" onclick="g('importInput').click()">Import JSON</button>
+        </div>
+        <input type="file" id="importInput" accept=".json" style="display:none" onchange="importData(this)">
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+</div><!-- /layout -->
+
+<!-- Mobile bottom nav -->
+<div id="mobileNav">
+  <button class="mNavBtn on" id="mAll" onclick="mNav('all')"><span>📖</span><span>Entries</span></button>
+  <button class="mNavBtn" id="mFav" onclick="mNav('fav')"><span>⭐</span><span>Favourites</span></button>
+  <button class="mNavBtn" id="mNew" onclick="startNew()" style="color:var(--accent)"><span style="font-size:26px;font-weight:300">+</span><span>New</span></button>
+  <button class="mNavBtn" id="mCal" onclick="mNav('cal')"><span>📅</span><span>Calendar</span></button>
+  <button class="mNavBtn" id="mSett" onclick="mNav('settings')"><span>⚙️</span><span>Settings</span></button>
+</div>
+
+<!-- Lightbox -->
+<div id="lightbox" onclick="g('lightbox').classList.remove('show')"><img id="lightboxImg" src="" alt=""></div>
+
+<script>
+const EK='jv6-e',TK='jv6-t',SK='jv6-s';
+const MOODS=[
+  {e:'😊',l:'Happy'},{e:'🥰',l:'Loved'},{e:'😌',l:'Calm'},{e:'🌿',l:'Peaceful'},
+  {e:'⚡',l:'Energized'},{e:'🔥',l:'Motivated'},{e:'🤩',l:'Excited'},{e:'🙏',l:'Grateful'},
+  {e:'🤔',l:'Reflective'},{e:'🌙',l:'Dreamy'},{e:'😶',l:'Neutral'},{e:'😔',l:'Low'},
+  {e:'😰',l:'Anxious'},{e:'😤',l:'Frustrated'},{e:'🌊',l:'Overwhelmed'},{e:'🌑',l:'Dark'},
+  {e:'😢',l:'Sad'},{e:'🤒',l:'Unwell'},{e:'😴',l:'Tired'},{e:'🦋',l:'Transforming'}
+];
+const BUILTIN=[
+  {id:'morning',name:'Morning Pages',icon:'🌅',body:'Good morning. Right now I feel:\n\n\nWhat\'s taking up space in my mind:\n\n\nI\'m grateful for:\n\n\nMy intention today:\n'},
+  {id:'evening',name:'Evening Reflection',icon:'🌙',body:'Today I learned:\n\n\nSomething that challenged me:\n\n\nSomething I\'m proud of:\n\n\nWhat I\'m carrying into tomorrow:\n'},
+  {id:'braindump',name:'Brain Dump',icon:'🌪',body:'Everything on my mind right now — unfiltered:\n\n'},
+  {id:'selfcheck',name:'Self Check-In',icon:'🪞',body:'Mind:\n\n\nBody:\n\n\nSpirit:\n\n\nWhat do I need that I\'m not giving myself?\n'},
+  {id:'manifest',name:'Manifestation',icon:'✨',body:'Living as if it\'s already real:\n\n\nHow this feels in my body:\n\n\nWhat I\'m choosing to believe today:\n'},
+  {id:'weekly',name:'Weekly Review',icon:'📆',body:'Week of:\n\nHighlights:\n\n\nWhere I felt off:\n\n\nPatterns I noticed:\n\n\nWhat I want next week to feel like:\n'},
+  {id:'gratitude',name:'Gratitude',icon:'🙏',body:'Three things I\'m grateful for:\n1. \n2. \n3. \n\nWhy each matters:\n'},
+  {id:'letter',name:'Letter to Self',icon:'✉️',body:'Dear future me,\n\n'},
+];
+const PROMPTS=["What's sitting with you that you haven't said out loud yet?","What version of yourself showed up today?","What are you carrying that doesn't belong to you?","What would feel like a full exhale right now?","Where did you feel most like yourself today?","What's a belief you're quietly questioning?","What is your body asking for that your mind keeps ignoring?","What are you becoming?","If today had a colour, what would it be and why?","What do you know now that you didn't know last year?"];
+
+let entries=[],uTmpls=[],sett={font:'Plus Jakarta Sans',fontSize:16,lineH:185,listView:'compact',showPrompt:true};
+let activeId=null,editingId=null,selMood=null,editTmplId=null;
+let isRec=false,mediaRec=null,chunks=[],recog=null,liveT='';
+let calY=new Date().getFullYear(),calM=new Date().getMonth();
+let draftPhotos=[]; // base64 array
+let draftLoc=null;
+const TODAY=new Date();
+
+function g(id){return document.getElementById(id)}
+
+// ── LOAD/SAVE ──
+function load(){
+  try{
+    const e=localStorage.getItem(EK);if(e)entries=JSON.parse(e);
+    const t=localStorage.getItem(TK);if(t)uTmpls=JSON.parse(t);
+    const s=localStorage.getItem(SK);if(s)sett={...sett,...JSON.parse(s)};
+  }catch(err){}
+  applySett();
+  g('sBadge').textContent=entries.length;
+  setFilter('all');
+  renderOTD();renderMoods();renderTmplGrid();
+}
+function persist(){try{localStorage.setItem(EK,JSON.stringify(entries));}catch(err){}g('sBadge').textContent=entries.length;}
+function persistT(){try{localStorage.setItem(TK,JSON.stringify(uTmpls));}catch(err){}}
+function saveSett(){try{localStorage.setItem(SK,JSON.stringify(sett));}catch(err){}}
+
+function applySett(){
+  const stack=`'${sett.font}',sans-serif`;
+  document.documentElement.style.setProperty('--font',stack);
+  document.body.style.fontFamily=stack;
+  const targets=[g('editor'),g('titleInput'),g('rBody'),g('fontPreview'),g('tmplPreviewBody')];
+  targets.forEach(el=>{if(el)el.style.fontFamily=stack;});
+  document.querySelectorAll('button,input,textarea,select').forEach(el=>el.style.fontFamily=stack);
+  if(g('fontSelect'))g('fontSelect').value=sett.font;
+  if(g('fontSizeRange'))g('fontSizeRange').value=sett.fontSize;
+  if(g('fontSizeLabel'))g('fontSizeLabel').textContent=sett.fontSize+'px';
+  if(g('lineHRange'))g('lineHRange').value=sett.lineH;
+  if(g('lineHLabel'))g('lineHLabel').textContent=(sett.lineH/100).toFixed(2);
+  if(g('fontPreview')){g('fontPreview').style.fontFamily=stack;g('fontPreview').style.fontSize=sett.fontSize+'px';}
+  if(g('editor')){g('editor').style.fontSize=sett.fontSize+'px';g('editor').style.lineHeight=(sett.lineH/100).toFixed(2);}
+  if(g('rBody')){g('rBody').style.fontSize=sett.fontSize+'px';g('rBody').style.lineHeight=(sett.lineH/100).toFixed(2);}
+  if(g('promptToggle'))g('promptToggle').value=sett.showPrompt?'1':'0';
+  if(g('vCompact'))g('vCompact').classList.toggle('on',sett.listView==='compact');
+  if(g('vComfy'))g('vComfy').classList.toggle('on',sett.listView==='comfy');
+}
+function applyFont(v){
+  sett.font=v;saveSett();
+  const stack=`'${v}',sans-serif`;
+  document.documentElement.style.setProperty('--font',stack);
+  // force override on elements browsers resist changing via CSS var
+  const targets=[document.body,g('editor'),g('titleInput'),g('rBody'),g('rTitle'),g('tmplPreviewBody'),g('fontPreview')];
+  targets.forEach(el=>{if(el)el.style.fontFamily=stack;});
+  document.querySelectorAll('button,input,textarea,select').forEach(el=>el.style.fontFamily=stack);
+  g('fontSelect').value=v;
+  g('fontPreview').textContent='The feeling is the secret. What you feel today, you create tomorrow.';
+}
+function applyFontSize(v){sett.fontSize=parseInt(v);saveSett();g('fontSizeLabel').textContent=v+'px';g('fontPreview').style.fontSize=v+'px';g('editor').style.fontSize=v+'px';g('rBody').style.fontSize=v+'px';}
+function applyLineH(v){sett.lineH=parseInt(v);saveSett();const lh=(v/100).toFixed(2);g('lineHLabel').textContent=lh;g('editor').style.lineHeight=lh;g('rBody').style.lineHeight=lh;}
+function setListView(v){sett.listView=v;saveSett();applySett();renderList();}
+
+// ── HELPERS ──
+function fmtFull(iso){return new Date(iso).toLocaleDateString('en-CA',{weekday:'long',year:'numeric',month:'long',day:'numeric'});}
+function fmtTime(iso){return new Date(iso).toLocaleTimeString('en-CA',{hour:'2-digit',minute:'2-digit'});}
+function fmtMonth(iso){return new Date(iso).toLocaleDateString('en-CA',{month:'long',year:'numeric'});}
+function fmtMood(iso){return new Date(iso).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'});}
+function sameDay(a,b){return a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate();}
+function wc(body){return (body||'').replace(/<[^>]+>/g,'').trim().split(/\s+/).filter(Boolean).length;}
+function esc(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+// ── FILTER / SORT / GROUP ──
+let curFilterState='all';
+function setFilter(f){
+  curFilterState=f;
+  g('fAll').classList.toggle('on',f==='all');
+  g('fFav').classList.toggle('on',f==='fav');
+  g('fPin').classList.toggle('on',f==='pin');
+  renderList();
+}
+
+function getFiltered(){
+  const q=g('searchInput').value.toLowerCase();
+  let arr=entries.filter(e=>{
+    if(curFilterState==='fav'&&!e.fav)return false;
+    if(curFilterState==='pin'&&!e.pinned)return false;
+    if(!q)return true;
+    return (e.title||'').toLowerCase().includes(q)||(e.body||'').replace(/<[^>]+>/g,'').toLowerCase().includes(q)||(e.tags||[]).some(t=>t.toLowerCase().includes(q));
+  });
+  const sort=g('sortSelect').value;
+  if(sort==='newest')arr.sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+  else if(sort==='oldest')arr.sort((a,b)=>new Date(a.createdAt)-new Date(b.createdAt));
+  else if(sort==='title')arr.sort((a,b)=>(a.title||'').localeCompare(b.title||''));
+  else if(sort==='wc')arr.sort((a,b)=>wc(b.body)-wc(a.body));
+  // pinned always float to top
+  arr.sort((a,b)=>(b.pinned?1:0)-(a.pinned?1:0));
+  return arr;
+}
+
+function groupEntries(arr){
+  const gBy=g('groupSelect').value;
+  if(gBy==='none'){return [['',arr]];}
+  if(gBy==='date'){
+    const m={};arr.forEach(e=>{const k=fmtMonth(e.createdAt);if(!m[k])m[k]=[];m[k].push(e);});return Object.entries(m);}
+  if(gBy==='mood'){
+    const m={};arr.forEach(e=>{const k=e.mood||'No mood';if(!m[k])m[k]=[];m[k].push(e);});return Object.entries(m);}
+  if(gBy==='tag'){
+    const m={'Untagged':[]};arr.forEach(e=>{if(!(e.tags||[]).length){m['Untagged'].push(e);}else{(e.tags).forEach(t=>{if(!m[t])m[t]=[];m[t].push(e);});}});return Object.entries(m).filter(([,v])=>v.length);}
+  return [['',arr]];
+}
+
+function renderList(){
+  const arr=getFiltered();
+  const scr=g('scroll');
+  if(!arr.length){scr.innerHTML='';if(!activeId)showMain('emptyState');return;}
+  if(!activeId)hideAll();
+  const groups=groupEntries(arr);
+  const isComfy=sett.listView==='comfy';
+  scr.innerHTML=groups.map(([label,items])=>{
+    const groupHtml=label?`<div class="dGroup">${esc(label)}</div>`:'';
+    return groupHtml+items.map(e=>{
+      const d=new Date(e.createdAt);
+      const dow=d.toLocaleDateString('en-CA',{weekday:'short'}).toUpperCase().slice(0,3);
+      const dn=d.getDate();
+      const title=e.title||'Untitled entry';
+      const snip=(e.body||'').replace(/<[^>]+>/g,'').slice(0,isComfy?120:80);
+      return `<div class="eCard${activeId===e.id?' sel':''}" onclick="openEntry('${e.id}')" style="${isComfy?'padding:12px 14px':''}">
+        ${e.pinned?'<div class="ePinIcon">📌</div>':''}
+        <div class="eRow">
+          <div class="eDateCol"><div class="eDow">${dow}</div><div class="eDay">${dn}</div></div>
+          <div class="eInfo">
+            <div class="eTitle">${e.fav?'⭐ ':''} ${esc(title)}</div>
+            <div class="eSnip" style="${isComfy?'-webkit-line-clamp:3':''}">${esc(snip||'—')}</div>
+            <div class="eMeta">
+              <span>${fmtTime(e.createdAt)}</span>
+              ${e.mood?`<span>${e.mood}</span>`:''}
+              ${e.location?`<span>📍 ${esc(e.location)}</span>`:''}
+              ${(e.tags||[]).slice(0,2).map(t=>`<span class="eTag">${esc(t)}</span>`).join('')}
+              ${(e.photos||[]).length?`<span>📷 ${e.photos.length}</span>`:''}
+            </div>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  }).join('');
+}
+
+function renderOTD(){
+  const mem=entries.filter(e=>{const d=new Date(e.createdAt);return d.getMonth()===TODAY.getMonth()&&d.getDate()===TODAY.getDate()&&!sameDay(d,TODAY);}).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+  const w=g('otdWrap');
+  if(!mem.length){w.className='';w.innerHTML='';return;}
+  w.className='show';
+  w.innerHTML=`<div class="otdHead"><span>🕰</span> On This Day</div>`+mem.slice(0,2).map(e=>{
+    const yr=new Date(e.createdAt).getFullYear();const ago=TODAY.getFullYear()-yr;
+    return `<div class="otdItem" onclick="openEntry('${e.id}')"><div class="otdYr">${yr} · ${ago===1?'1 year ago':ago+' years ago'}</div><div class="otdTitle">${esc(e.title||'Untitled')}</div><div class="otdSnip">${esc((e.body||'').replace(/<[^>]+>/g,'').slice(0,60))}</div></div>`;
+  }).join('');
+}
+
+function renderMoods(){
+  g('moodRow').innerHTML=`<span style="font-size:10px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.07em;align-self:center;margin-right:4px;white-space:nowrap">Mood</span>`+MOODS.map(m=>`<button class="mBtn${selMood===m.e?' on':''}" title="${m.l}" onclick="pickMood('${m.e}')">${m.e}</button>`).join('');
+}
+function pickMood(e){selMood=selMood===e?null:e;renderMoods();}
+
+// ── TEMPLATE GRID ──
+let previewedTmplId=null;
+function renderTmplGrid(){
+  const all=[...BUILTIN,...uTmpls];
+  g('tmplGrid').innerHTML=all.map(t=>`<div class="tCard${previewedTmplId===t.id?' preview':''}" onclick="previewTmpl('${t.id}')"><div class="tCardIcon">${t.icon||'📝'}</div><div class="tCardName">${esc(t.name)}</div></div>`).join('');
+}
+function previewTmpl(id){
+  const t=[...BUILTIN,...uTmpls].find(x=>x.id===id);if(!t)return;
+  previewedTmplId=id;
+  g('tmplPreviewTitle').innerHTML=`${t.icon||'📝'} <strong>${esc(t.name)}</strong>`;
+  g('tmplPreviewBody').textContent=t.body;
+  g('tmplPreview').classList.add('show');
+  renderTmplGrid();
+}
+function clearPreview(){previewedTmplId=null;g('tmplPreview').classList.remove('show');renderTmplGrid();}
+
+function tmplBodyToHtml(body){
+  return body.split('\n').map(line=>{
+    const t=line.trim();
+    if(!t) return '<p><br></p>';
+    if(t.endsWith('?')||t.endsWith(':'))
+      return `<p><span class="tmpl-chip" contenteditable="false">${esc(t)}</span></p><p><br></p>`;
+    return `<p>${esc(t)}</p>`;
+  }).join('');
+}
+
+function usePreviewedTmpl(){
+  const t=[...BUILTIN,...uTmpls].find(x=>x.id===previewedTmplId);if(!t)return;
+  g('editor').innerHTML=tmplBodyToHtml(t.body);
+  g('tmplPanel').classList.remove('show');
+  clearPreview();wcUpdate();g('editor').focus();
+}
+
+// ── FULLSCREEN ──
+let isFullscreen=false;
+function toggleFullscreen(){
+  isFullscreen=!isFullscreen;
+  g('layout').classList.toggle('fullscreen',isFullscreen);
+  const icon=isFullscreen?'✕':'⛶';
+  if(g('fsBtn')){g('fsBtn').textContent=icon;g('fsBtn').classList.toggle('on',isFullscreen);}
+  if(g('fsBtnW')){g('fsBtnW').textContent=icon;}
+}
+
+// ── MOBILE NAV ──
+function mNav(v){
+  ['mAll','mFav','mCal','mSett'].forEach(id=>g(id)?.classList.remove('on'));
+  const map={all:'mAll',fav:'mFav',cal:'mCal',settings:'mSett'};
+  if(map[v])g(map[v])?.classList.add('on');
+  sNav(v);
+}
+
+// ── VIEWS ──
+function hideAll(){['emptyState','readView','writeView','calView','settingsView','tmgrView'].forEach(id=>{const el=g(id);if(el)el.style.display='none';});}
+function showMain(id){
+  hideAll();
+  const el=g(id);if(!el)return;
+  el.style.display=['readView','writeView','settingsView','tmgrView'].includes(id)?'flex':'block';
+  // on mobile, always show the main pane
+  if(window.innerWidth<=700) g('layout').classList.add('showMain');
+}
+function backToList(){
+  // exit fullscreen if active
+  if(isFullscreen){isFullscreen=false;g('layout').classList.remove('fullscreen');if(g('fsBtn')){g('fsBtn').textContent='⛶';g('fsBtn').classList.remove('on');}if(g('fsBtnW'))g('fsBtnW').textContent='⛶';}
+  g('layout').classList.remove('showMain');
+  hideAll();
+  activeId=null;
+  renderList();
+  if(entries.length===0) showMain('emptyState');
+}
+
+function sNav(v){
+  ['sAll','sFav','sPin','sCal','sTmgr','sSettings'].forEach(id=>g(id)?.classList.remove('on'));
+  activeId=null;editingId=null;hideAll();g('tmplPanel').classList.remove('show');
+  const navMap={all:'sAll',fav:'sFav',pin:'sPin',cal:'sCal',tmgr:'sTmgr',settings:'sSettings'};
+  if(navMap[v])g(navMap[v])?.classList.add('on');
+  g('layout').classList.remove('showMain');
+  if(v==='all'){g('listHeadTitle').textContent='All Entries';setFilter('all');renderList();if(entries.length===0)showMain('emptyState');}
+  else if(v==='fav'){g('listHeadTitle').textContent='Favourites';setFilter('fav');renderList();if(!getFiltered().length)showMain('emptyState');}
+  else if(v==='pin'){g('listHeadTitle').textContent='Pinned';setFilter('pin');renderList();if(!getFiltered().length)showMain('emptyState');}
+  else if(v==='cal'){showMain('calView');renderCal();}
+  else if(v==='tmgr'){showMain('tmgrView');renderTmgrList();}
+  else if(v==='settings'){showMain('settingsView');}
+}
+
+// ── OPEN ENTRY ──
+function openEntry(id){
+  activeId=id;
+  const e=entries.find(x=>x.id===id);if(!e)return;
+  g('rBarTitle').textContent=fmtFull(e.createdAt);
+  g('rMeta').innerHTML=`${fmtFull(e.createdAt)} · ${fmtTime(e.createdAt)} · ${wc(e.body)} words`;
+  g('rMood').innerHTML=e.mood?`<span style="font-size:22px;display:block;margin:4px 0 6px">${e.mood}</span>`:'';
+  g('rLocation').innerHTML=e.location?`<span style="font-size:12px;color:var(--text3);display:flex;align-items:center;gap:4px;margin-bottom:8px">📍 ${esc(e.location)}</span>`:'';
+  g('rTitle').innerHTML=e.title?`<div style="font-size:28px;font-weight:700;color:var(--text);margin-bottom:10px;line-height:1.2">${esc(e.title)}</div>`:'';
+  g('rTags').innerHTML=(e.tags||[]).map(t=>`<span class="rTag">${esc(t)}</span>`).join('');
+  g('rPhotos').innerHTML=(e.photos||[]).map(p=>`<img src="${p}" onclick="openLightbox('${p}')" alt="photo">`).join('');
+  g('rBody').innerHTML=e.body||'';
+  // fav/pin button state
+  g('favBtn').classList.toggle('on',!!e.fav);
+  g('pinBtn').classList.toggle('pin-on',!!e.pinned);
+  showMain('readView');
+  renderList();
+}
+
+// ── FAV / PIN ──
+function toggleFav(){
+  const e=entries.find(x=>x.id===activeId);if(!e)return;
+  e.fav=!e.fav;persist();
+  g('favBtn').classList.toggle('on',e.fav);
+  renderList();
+}
+function togglePin(){
+  const e=entries.find(x=>x.id===activeId);if(!e)return;
+  e.pinned=!e.pinned;persist();
+  g('pinBtn').classList.toggle('pin-on',e.pinned);
+  renderList();
+}
+
+// ── NEW / EDIT ──
+function startNew(){
+  editingId=null;selMood=null;draftPhotos=[];draftLoc=null;
+  g('titleInput').value='';g('editor').innerHTML='';g('tagsInput').value='';g('wStatus').textContent='';
+  g('photoStrip').innerHTML='';g('locDisplay').textContent='';
+  if(sett.showPrompt!==false){const p=PROMPTS[Math.floor(Math.random()*PROMPTS.length)];g('promptTxt').textContent=p;g('promptBar').classList.add('show');}
+  else{g('promptBar').classList.remove('show');}
+  g('tmplPanel').classList.remove('show');g('voiceWrap').classList.remove('show');
+  renderMoods();wcUpdate();showMain('writeView');
+  setTimeout(()=>g('editor').focus(),100);
+}
+function startEdit(){
+  const e=entries.find(x=>x.id===activeId);if(!e)return;
+  editingId=e.id;selMood=e.mood||null;draftPhotos=e.photos||[];draftLoc=e.location||null;
+  g('titleInput').value=e.title||'';g('editor').innerHTML=e.body||'';g('tagsInput').value=(e.tags||[]).join(', ');g('wStatus').textContent='';
+  g('promptBar').classList.remove('show');g('tmplPanel').classList.remove('show');g('voiceWrap').classList.remove('show');
+  renderMoods();wcUpdate();renderPhotoStrip();
+  if(draftLoc)g('locDisplay').innerHTML=`📍 ${esc(draftLoc)}`;
+  showMain('writeView');
+}
+function cancelWrite(){
+  g('tmplPanel').classList.remove('show');
+  if(editingId||activeId){openEntry(editingId||activeId);}
+  else{backToList();}
+}
+function saveEntry(){
+  const title=g('titleInput').value.trim();
+  const body=g('editor').innerHTML;
+  const raw=(g('editor').innerText||'').trim();
+  if(!raw&&!title)return;
+  const tags=g('tagsInput').value?g('tagsInput').value.split(',').map(t=>t.trim()).filter(Boolean):[];
+  const entryData={title,body,mood:selMood,tags,photos:draftPhotos,location:draftLoc,updatedAt:new Date().toISOString()};
+  if(editingId){
+    entries=entries.map(e=>e.id===editingId?{...e,...entryData}:e);
+    activeId=editingId;editingId=null;
+  } else {
+    const ne={id:Date.now().toString(),...entryData,fav:false,pinned:false,createdAt:new Date().toISOString()};
+    entries=[ne,...entries];activeId=ne.id;
+  }
+  persist();
+  g('tmplPanel').classList.remove('show');
+  // always exit fullscreen write mode back to read view
+  if(isFullscreen){
+    // stay fullscreen but show read view
+    openEntry(activeId);
+  } else {
+    openEntry(activeId);
+  }
+}
+function deleteEntry(){
+  if(!activeId||!confirm('Delete this entry? This cannot be undone.'))return;
+  entries=entries.filter(e=>e.id!==activeId);activeId=null;persist();backToList();
+}
+
+// ── FORMATTING ──
+function fmt(cmd,val){g('editor').focus();document.execCommand(cmd,false,val||null);}
+function doBlockquote(){g('editor').focus();document.execCommand('formatBlock',false,'blockquote');}
+function doHR(){g('editor').focus();document.execCommand('insertHTML',false,'<hr>');}
+function doLink(){const u=prompt('Enter URL (include https://):');if(u){g('editor').focus();document.execCommand('createLink',false,u);}}
+function wcUpdate(){const t=(g('editor').innerText||'').trim();const n=t?t.split(/\s+/).filter(Boolean).length:0;const label=n+' '+(n===1?'word':'words');g('wCount').textContent=label;g('wCount2').textContent=label;}
+function toggleTmpl(){g('tmplPanel').classList.toggle('show');}
+
+// ── PHOTOS ──
+function triggerPhoto(){g('photoInput').click();}
+function handlePhotos(input){
+  const files=Array.from(input.files);
+  files.forEach(file=>{
+    const reader=new FileReader();
+    reader.onload=ev=>{draftPhotos.push(ev.target.result);renderPhotoStrip();};
+    reader.readAsDataURL(file);
+  });
+  input.value='';
+}
+function renderPhotoStrip(){
+  g('photoStrip').innerHTML=draftPhotos.map((p,i)=>`<div class="photo-thumb"><img src="${p}" alt=""><button class="rmPhoto" onclick="removePhoto(${i})">✕</button></div>`).join('');
+}
+function removePhoto(i){draftPhotos.splice(i,1);renderPhotoStrip();}
+function openLightbox(src){g('lightboxImg').src=src;g('lightbox').classList.add('show');}
+
+// ── LOCATION ──
+function getLocation(){
+  if(!navigator.geolocation){alert('Geolocation not supported by your browser.');return;}
+  g('locDisplay').textContent='📍 Getting location…';
+  navigator.geolocation.getCurrentPosition(pos=>{
+    const {latitude,longitude}=pos.coords;
+    fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`)
+      .then(r=>r.json())
+      .then(data=>{
+        const city=data.address?.city||data.address?.town||data.address?.village||data.address?.county||'';
+        const country=data.address?.country||'';
+        draftLoc=city?`${city}, ${country}`:country||`${latitude.toFixed(3)}, ${longitude.toFixed(3)}`;
+        g('locDisplay').innerHTML=`📍 ${esc(draftLoc)}`;
+      }).catch(()=>{
+        draftLoc=`${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+        g('locDisplay').innerHTML=`📍 ${esc(draftLoc)}`;
+      });
+  },err=>{g('locDisplay').textContent='📍 Location denied';});
+}
+
+// ── VOICE ──
+function toggleVoice(){g('voiceWrap').classList.toggle('show');}
+function toggleRec(){if(isRec)stopRec();else startRec();}
+async function startRec(){
+  liveT='';g('vAudio').innerHTML='';g('vTranscript').textContent='Listening…';g('appendBtn').style.display='none';
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(SR){recog=new SR();recog.continuous=true;recog.interimResults=true;recog.onresult=ev=>{let t='';for(let i=0;i<ev.results.length;i++)t+=ev.results[i][0].transcript;liveT=t;g('vTranscript').textContent=t||'Listening…';};try{recog.start();}catch(e){}}
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+    chunks=[];mediaRec=new MediaRecorder(stream);
+    mediaRec.ondataavailable=e=>chunks.push(e.data);
+    mediaRec.onstop=()=>{const blob=new Blob(chunks,{type:'audio/webm'});const url=URL.createObjectURL(blob);g('vAudio').innerHTML=`<audio controls src="${url}" style="width:100%;margin-top:8px;opacity:.8"></audio>`;stream.getTracks().forEach(t=>t.stop());if(liveT)g('appendBtn').style.display='inline-block';};
+    mediaRec.start();isRec=true;g('recBtn').textContent='⏹ Stop';g('recBtn').className='recOn pulse';
+  }catch(e){g('vTranscript').textContent='Microphone access denied.';}
+}
+function stopRec(){isRec=false;try{mediaRec?.stop();}catch(e){}try{recog?.stop();}catch(e){}g('recBtn').textContent='Record again';g('recBtn').className='recOff';g('recBtn').classList.remove('pulse');}
+function appendTranscript(){if(!liveT)return;const ed=g('editor');ed.innerHTML+=(ed.innerHTML?'<br><br>':'')+esc(liveT);wcUpdate();g('appendBtn').style.display='none';g('voiceWrap').classList.remove('show');}
+
+// ── CALENDAR ──
+function renderCal(){
+  const first=new Date(calY,calM,1),dim=new Date(calY,calM+1,0).getDate(),sdow=first.getDay();
+  const mName=first.toLocaleDateString('en-CA',{month:'long',year:'numeric'});
+  const eMap={};entries.forEach(e=>{const d=new Date(e.createdAt);const k=`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;if(!eMap[k])eMap[k]={mood:null};if(!eMap[k].mood&&e.mood)eMap[k].mood=e.mood;});
+  let cells='';
+  for(let i=0;i<sdow;i++)cells+=`<div class="cDay"></div>`;
+  for(let d=1;d<=dim;d++){const k=`${calY}-${calM}-${d}`;const info=eMap[k];const isT=sameDay(new Date(calY,calM,d),TODAY);cells+=`<div class="cDay${info?' has':''}${isT?' today':''}" ${info?`onclick="calClick(${calY},${calM},${d})"`:''}>
+    <span>${d}</span>${info?.mood?`<span class="cMood">${info.mood}</span>`:info?`<span class="cDot"></span>`:''}
+  </div>`;}
+  g('calView').innerHTML=`<div class="calHead"><button onclick="calPrev()" style="font-size:22px;color:var(--text2);padding:0 10px">‹</button><span class="calTitle">${mName}</span><button onclick="calNext()" style="font-size:22px;color:var(--text2);padding:0 10px">›</button></div><div class="calGrid">${['Su','Mo','Tu','We','Th','Fr','Sa'].map(d=>`<div class="cDow">${d}</div>`).join('')}${cells}</div><div style="margin-top:12px;font-size:12px;color:var(--text3);text-align:center;max-width:400px;margin-left:auto;margin-right:auto">Tap a highlighted day to open its entry</div>`;
+}
+function calPrev(){if(calM===0){calY--;calM=11;}else calM--;renderCal();}
+function calNext(){if(calM===11){calY++;calM=0;}else calM++;renderCal();}
+function calClick(y,m,d){const day=new Date(y,m,d);const es=entries.filter(e=>sameDay(new Date(e.createdAt),day));if(es.length)openEntry(es[0].id);}
+
+// ── TEMPLATE MANAGER ──
+function renderTmgrList(){
+  const list=g('tmgrList');g('tmgrForm').style.display='none';
+  if(!uTmpls.length){list.innerHTML=`<div style="font-size:13px;color:var(--text3);padding:24px 0;text-align:center">No custom templates yet. Create one!</div>`;return;}
+  list.innerHTML=uTmpls.map(t=>`<div class="tmgrRow"><span class="tmgrIcon">${t.icon||'📝'}</span><div class="tmgrInfo"><div class="tmgrName">${esc(t.name)}</div>${t.desc?`<div class="tmgrDesc">${esc(t.desc)}</div>`:''}</div><button class="sBtn" onclick="editTmpl('${t.id}')">Edit</button><button class="sBtn sBtnD" onclick="deleteTmpl('${t.id}')">Delete</button></div>`).join('');
+}
+function newTmpl(){editTmplId=null;g('tmgrFTitle').textContent='NEW TEMPLATE';g('fIcon').value='📝';g('fName').value='';g('fDesc').value='';g('fBody').value='';g('tmgrForm').style.display='block';}
+function editTmpl(id){const t=uTmpls.find(x=>x.id===id);if(!t)return;editTmplId=id;g('tmgrFTitle').textContent='EDIT TEMPLATE';g('fIcon').value=t.icon||'📝';g('fName').value=t.name;g('fDesc').value=t.desc||'';g('fBody').value=t.body||'';g('tmgrForm').style.display='block';}
+function saveTmpl(){const name=g('fName').value.trim();const body=g('fBody').value;if(!name)return;const t={id:editTmplId||Date.now().toString(),name,icon:g('fIcon').value||'📝',desc:g('fDesc').value,body};if(editTmplId)uTmpls=uTmpls.map(x=>x.id===editTmplId?t:x);else uTmpls=[...uTmpls,t];persistT();renderTmgrList();renderTmplGrid();g('tmgrForm').style.display='none';editTmplId=null;}
+function cancelTmpl(){g('tmgrForm').style.display='none';editTmplId=null;}
+function deleteTmpl(id){if(!confirm('Delete this template?'))return;uTmpls=uTmpls.filter(x=>x.id!==id);persistT();renderTmgrList();renderTmplGrid();}
+
+// ── EXPORT / IMPORT ──
+function exportData(){
+  const data=JSON.stringify({entries,templates:uTmpls,exportedAt:new Date().toISOString()},null,2);
+  const a=document.createElement('a');a.href='data:application/json,'+encodeURIComponent(data);a.download='journal-backup-'+new Date().toISOString().slice(0,10)+'.json';a.click();
+}
+function importData(input){
+  const file=input.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    try{
+      const data=JSON.parse(ev.target.result);
+      if(data.entries){entries=[...data.entries,...entries];persist();}
+      if(data.templates){uTmpls=[...data.templates,...uTmpls];persistT();}
+      renderList();renderTmplGrid();alert('Import successful! '+( data.entries?.length||0)+' entries imported.');
+    }catch(e){alert('Invalid JSON file.');}
+  };
+  reader.readAsText(file);input.value='';
+}
+
+load();
+</script>
+</body>
+</html>
