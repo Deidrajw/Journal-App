@@ -1,0 +1,1547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content">
+<title>Journal</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="theme-color" content="#000">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  /* Dusty rose accent on cool charcoal */
+  --acc:#c4849a;        /* dusty rose */
+  --acc-soft:rgba(196,132,154,.15);
+  --acc2:#7fb3a8;       /* muted teal — secondary */
+  --acc2-soft:rgba(127,179,168,.12);
+  --danger:#e06b6b;
+  --gold:#c9a96e;       /* warm amber gold */
+  --bg:#111214;         /* cool near-black */
+  --bg2:#1a1d21;        /* slate dark */
+  --bg3:#22262d;        /* mid slate */
+  --bg4:#2d3138;        /* lighter slate */
+  --t1:#eeedf0;         /* ice white */
+  --t2:#9a9ba8;         /* cool grey */
+  --t3:#5a5c6a;         /* dim slate */
+  --bd:#252830;         /* subtle border */
+  --font:'Plus Jakarta Sans',sans-serif
+}
+html,body{height:100%;overflow:hidden;background:var(--bg)}
+body{font-family:var(--font);color:var(--t1);font-size:15px}
+button{cursor:pointer;font-family:var(--font);border:none;background:none;color:var(--t1)}
+input,textarea{font-family:var(--font);border:none;outline:none;background:none;color:var(--t1)}
+select{font-family:var(--font);border:none;outline:none;background:var(--bg3);color:var(--t1)}
+::-webkit-scrollbar{width:3px}::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:4px}
+
+/* ── SCREEN STACK ── */
+#app{position:fixed;inset:0;display:flex;flex-direction:column}
+.screen{position:absolute;inset:0;display:none;flex-direction:column;background:var(--bg)}
+.screen.active{display:flex}
+#writeScreen{position:absolute;inset:0;display:none;flex-direction:column;background:var(--bg);z-index:60}
+#writeScreen.active{display:flex}
+
+/* ── BOTTOM NAV ── */
+#nav{position:fixed;bottom:0;left:0;right:0;background:rgba(28,28,30,.96);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-top:1px solid rgba(255,255,255,.1);display:flex;z-index:50;padding-bottom:env(safe-area-inset-bottom)}
+.navBtn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 4px 6px;gap:3px;font-size:10px;font-weight:500;color:var(--t3);cursor:pointer;border:none;background:none;transition:color .15s;min-height:50px}
+.navBtn.on{color:var(--acc)}
+.navBtn svg{stroke:currentColor;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.settGear{padding:7px;border-radius:9px;border:1px solid var(--bd);color:var(--t2);background:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.settGear:active{background:var(--bg3);color:var(--acc)}
+#navNewBtn{background:var(--acc);border-radius:50%;width:44px;height:44px;display:flex;align-items:center;justify-content:center;margin-bottom:2px;cursor:pointer;border:none;box-shadow:0 4px 16px rgba(196,132,154,.35)}
+/* padding for content above nav */
+.navPad{padding-bottom:calc(62px + env(safe-area-inset-bottom))}
+
+/* ── SHARED COMPONENTS ── */
+.topBar{display:flex;align-items:center;padding:12px 16px 10px;gap:8px;flex-shrink:0}
+.topBar.border{border-bottom:1px solid var(--bd)}
+.topBarTitle{flex:1;font-size:15px;font-weight:600;text-align:center}
+.btn{padding:6px 14px;border-radius:8px;font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:5px;border:1px solid var(--bd);color:var(--t2);cursor:pointer;transition:opacity .1s}
+.btnP{background:var(--acc);color:#fff;border:none}
+.btn:active{opacity:.7}
+.pill{padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;border:1px solid var(--bd);color:var(--t2);cursor:pointer;background:none}
+.pill.on{border-color:var(--acc);color:var(--acc);background:var(--acc-soft)}
+.pill.gold.on{border-color:var(--gold);color:var(--gold);background:rgba(201,169,110,.1)}
+.pill.grn.on{border-color:var(--acc2);color:var(--acc2);background:var(--acc2-soft)}
+
+/* ── TODAY SCREEN ── */
+#todayScroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 16px 0}
+.todayHero{padding:8px 0 16px}
+.todayDate{font-size:13px;color:var(--t3);margin-bottom:4px}
+.todayTitle{font-size:32px;font-weight:700}
+.section{margin-bottom:24px}
+.sectionHead{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.sectionTitle{font-size:18px;font-weight:700}
+.seeMore{font-size:14px;color:var(--acc)}
+.card{background:var(--bg2);border-radius:14px;padding:14px 16px}
+.cardRow{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--bd)}
+.cardRow:last-child{border-bottom:none}
+.promptCard{background:linear-gradient(135deg,#b36d84 0%,#8b5e7a 100%);border-radius:16px;padding:20px;text-align:center;cursor:pointer;transition:opacity .1s}
+.promptCard:active{opacity:.85}
+.promptCardText{font-size:18px;font-weight:700;color:#fff;line-height:1.4}
+.quickGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.quickBtn{background:var(--bg2);border-radius:12px;padding:16px;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;border:1px solid var(--bd)}
+.quickBtn svg{stroke:var(--t2);fill:none;stroke-linecap:round;stroke-linejoin:round}
+.quickBtnLabel{font-size:13px;color:var(--t2)}
+.otdYearBtns{display:flex;gap:8px;margin-top:8px}
+.otdYearBtn{flex:1;background:var(--bg2);border-radius:10px;padding:12px;text-align:center;font-size:15px;color:var(--t2);cursor:pointer;border:1px solid var(--bd)}
+.otdYearBtn:active{background:var(--bg3)}
+
+/* ── JOURNALS SCREEN ── */
+.tabBar{display:flex;padding:0 12px;border-bottom:1px solid var(--bd);flex-shrink:0}
+.tabBtn{padding:10px 14px;font-size:14px;font-weight:500;color:var(--t3);border-bottom:2px solid transparent;cursor:pointer;transition:all .15s;flex-shrink:0}
+.tabBtn.on{color:var(--t1);border-bottom-color:var(--acc)}
+.subView{display:none;flex:1;overflow:hidden;flex-direction:column}
+.subView.active{display:flex}
+
+/* entry list */
+#listScroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.listSearch{padding:8px 12px;flex-shrink:0}
+.listSearch input{width:100%;background:var(--bg2);border-radius:10px;padding:8px 12px;font-size:14px}
+.listSearch input::placeholder{color:var(--t3)}
+.filterRow{display:flex;gap:6px;padding:0 12px 8px;overflow-x:auto;flex-shrink:0;scrollbar-width:none}
+.filterRow::-webkit-scrollbar{display:none}
+.sortRow{display:flex;gap:6px;padding:0 12px 8px;flex-shrink:0}
+.sortRow select{flex:1;background:var(--bg3);border-radius:8px;padding:5px 8px;font-size:12px;color:var(--t2)}
+.eGroup{padding:8px 14px 2px;font-size:11px;color:var(--t3);font-weight:700;letter-spacing:.06em}
+.eCard{padding:12px 14px;border-bottom:1px solid var(--bd);cursor:pointer;position:relative;transition:background .1s}
+.eCard:active{background:var(--bg2)}
+.eCardTitle{font-size:15px;font-weight:600;margin-bottom:3px;padding-right:20px}
+.eCardSnip{font-size:13px;color:var(--t2);overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.45;margin-bottom:5px}
+.eCardMeta{font-size:12px;color:var(--t3);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.eMetaChip{background:var(--bg3);color:var(--t2);padding:2px 7px;border-radius:6px;font-size:11px}
+.ePinDot{position:absolute;top:14px;right:14px;width:7px;height:7px;border-radius:50%;background:var(--acc2)}
+
+/* calendar subview */
+#calWrap{padding:16px;flex:1;overflow-y:auto}
+.calHead{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.calHeadTitle{font-size:16px;font-weight:700}
+.calNavBtn{font-size:24px;color:var(--t2);padding:0 8px;background:none;border:none;cursor:pointer}
+.calGrid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.calDow{text-align:center;font-size:10px;color:var(--t3);font-weight:700;text-transform:uppercase;padding:4px 0}
+.calDay{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:10px;font-size:13px;color:var(--t3);cursor:default}
+.calDay.has{background:var(--bg2);border:1px solid var(--bd);cursor:pointer;color:var(--t1)}
+.calDay.has:active{border-color:var(--acc)}
+.calDay.isToday{border:2px solid var(--acc)!important;color:var(--acc);font-weight:700}
+.calMood{font-size:9px;color:var(--t3);margin-top:1px;font-weight:600}
+.calDot{width:4px;height:4px;border-radius:50%;background:var(--acc);margin-top:2px}
+
+/* media subview */
+#mediaGrid{padding:2px;display:grid;grid-template-columns:repeat(3,1fr);gap:2px;flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;align-content:start}
+.mediaThumb{aspect-ratio:1;overflow:hidden;cursor:pointer}
+.mediaThumb img{width:100%;height:100%;object-fit:cover;transition:opacity .1s}
+.mediaThumb:active img{opacity:.8}
+
+/* map subview */
+#mapWrap{flex:1;position:relative}
+#mapEl{width:100%;height:100%;background:var(--bg2)}
+.mapPinCluster{position:absolute;transform:translate(-50%,-50%);background:var(--acc);color:#fff;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;cursor:pointer;border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.4)}
+
+/* ── PROMPTS SCREEN ── */
+#promptsScroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px}
+.promptItem{background:var(--bg2);border-radius:14px;padding:16px;margin-bottom:10px;cursor:pointer;transition:opacity .1s}
+.promptItem:active{opacity:.8}
+.promptItemText{font-size:16px;font-weight:500;line-height:1.5;margin-bottom:8px}
+.promptItemBtn{font-size:13px;color:var(--acc);font-weight:600}
+
+/* ── WRITE SCREEN ── */
+#writeScreen{z-index:60;overflow:hidden}
+#writeTop{display:flex;align-items:center;padding:max(14px,env(safe-area-inset-top)) 12px 10px;flex-shrink:0;gap:6px;border-bottom:1px solid var(--bd)}
+#writeDateLine{flex:1;font-size:12px;color:var(--t3);font-weight:500;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+#writeDoneBtn{background:var(--acc);color:#fff;padding:8px 20px;border-radius:20px;font-size:15px;font-weight:700;border:none;cursor:pointer;flex-shrink:0}
+#writeEllipsisBtn{padding:6px 10px;border-radius:8px;border:1px solid var(--bd);color:var(--t2);font-size:18px;cursor:pointer;background:none;flex-shrink:0}
+#writeMeta{padding:8px 14px 6px;font-size:12px;display:flex;align-items:center;gap:6px;flex-shrink:0;flex-wrap:wrap}
+#writeMoodChip{padding:5px 12px;border-radius:16px;border:1px solid var(--bd);color:var(--t2);font-size:12px;cursor:pointer;background:none;display:flex;align-items:center;gap:4px}
+#writeMoodChip.set{border-color:var(--acc);color:var(--acc);background:var(--acc-soft)}
+#writeLocChip{padding:5px 12px;border-radius:16px;border:1px solid var(--bd);color:var(--t2);font-size:12px;cursor:pointer;background:none;display:flex;align-items:center;gap:4px}
+#writeLocChip.set{border-color:var(--acc2);color:var(--acc2);background:var(--acc2-soft)}
+#writeTagsRow{padding:6px 14px 8px;flex-shrink:0;position:relative;border-bottom:1px solid var(--bd);z-index:60}
+#writeTagsInput{width:100%;background:var(--bg2);border-radius:8px;padding:8px 12px;font-size:13px;border:1px solid var(--bd)}
+#writeTagsInput::placeholder{color:var(--t3)}
+/* dropdown goes DOWN below the input */
+#tagSugBox{position:absolute;top:calc(100% - 2px);left:14px;right:14px;background:var(--bg3);border:1px solid var(--acc);border-radius:10px;display:none;z-index:50;overflow:hidden;max-height:160px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.5)}
+#tagSugBox.show{display:block}
+.tagSugItem{padding:10px 14px;font-size:13px;color:var(--t2);cursor:pointer;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:6px}
+.tagSugItem::before{content:'#';color:var(--acc);font-size:11px;font-weight:700;flex-shrink:0}
+.tagSugItem:last-child{border-bottom:none}
+.tagSugItem:active{background:var(--bg4)}
+/* writeScroll fills remaining space, keyboard shrinks it, toolbar stays at bottom */
+#writeScroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:8px 16px 12px;min-height:0}
+#writeTitleIn{font-size:24px;font-weight:700;width:100%;color:var(--t1);display:block;padding:4px 0 10px;border-bottom:1px solid var(--bd);margin-bottom:12px}
+#writeTitleIn::placeholder{color:var(--t3)}
+#writeEditor{min-height:120px;font-size:16px;line-height:1.85;color:#d0d0d5;outline:none;width:100%}
+#writeEditor:empty::before{content:attr(data-placeholder);color:var(--t3);pointer-events:none}
+#writeEditor h1{font-size:22px;font-weight:700;color:var(--t1);margin:14px 0 5px}
+#writeEditor h2{font-size:18px;font-weight:600;color:var(--t1);margin:12px 0 4px}
+#writeEditor h3{font-size:16px;font-weight:600;color:var(--t1);margin:10px 0 3px}
+#writeEditor h4{font-size:12px;font-weight:700;color:var(--acc);margin:10px 0 3px;text-transform:uppercase;letter-spacing:.08em}
+#writeEditor blockquote{border-left:3px solid var(--acc);padding-left:14px;color:var(--t2);font-style:italic;margin:10px 0}
+#writeEditor ul,#writeEditor ol{padding-left:22px;margin:6px 0}
+#writeEditor li{margin:3px 0}
+#writeEditor hr{border:none;border-top:1px solid var(--bd);margin:16px 0}
+#writeEditor strong{color:var(--t1)}
+#writeEditor a{color:var(--acc)}
+#writeEditor img{max-width:100%;border-radius:10px;margin:10px 0;display:block;cursor:pointer}
+
+/* colored headings */
+#writeEditor h1,#readBody h1{color:#c4849a}
+#writeEditor h2,#readBody h2{color:#7fb3a8}
+#writeEditor h3,#readBody h3{color:#c9a96e}
+#writeEditor h4,#readBody h4{color:#c4849a;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em}
+/* highlight */
+mark{background:rgba(201,169,110,.35);color:inherit;border-radius:2px;padding:0 2px}
+/* table */
+#writeEditor table,#readBody table{width:100%;border-collapse:collapse;margin:12px 0;font-size:14px}
+#writeEditor td,#writeEditor th,#readBody td,#readBody th{border:1px solid var(--bd);padding:8px 10px;text-align:left;vertical-align:top}
+#writeEditor th,#readBody th{background:var(--bg3);color:var(--acc);font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+/* color picker overlay */
+#colorPicker{position:absolute;background:var(--bg2);border:1px solid var(--bd);border-radius:12px;padding:10px;display:none;gap:6px;flex-wrap:wrap;width:200px;z-index:300;box-shadow:0 8px 24px rgba(0,0,0,.5)}
+#colorPicker.show{display:flex}
+.cpSwatch{width:28px;height:28px;border-radius:6px;cursor:pointer;border:2px solid transparent;transition:transform .1s}
+.cpSwatch:hover{transform:scale(1.15);border-color:#fff}
+
+.wChip{display:inline-block;background:var(--acc-soft);border:1px solid var(--acc);border-radius:6px;padding:4px 11px;font-size:11px;font-weight:700;color:var(--acc);letter-spacing:.06em;text-transform:uppercase;margin:12px 0 4px;pointer-events:none;user-select:none}
+#promptBar{display:none;background:var(--acc-soft);border-left:3px solid var(--acc);border-radius:0 8px 8px 0;padding:9px 12px;margin-bottom:14px;font-size:13px;color:var(--t2);font-style:italic;flex-direction:row;justify-content:space-between;align-items:flex-start;gap:8px}
+#promptBar.show{display:flex}
+#promptBar button{color:var(--t3);font-size:16px;background:none;border:none;cursor:pointer;flex-shrink:0}
+/* toolbar - above editor, flex-shrink:0, never affected by keyboard */
+#floatBar{background:var(--bg2);border-bottom:1px solid var(--bd);display:none;flex-direction:column;flex-shrink:0}
+#floatBar.show{display:flex}
+#floatQuick{display:flex;border-bottom:1px solid var(--bd)}
+.fqBtn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:9px 4px 10px;gap:3px;font-size:11px;font-weight:500;color:var(--t2);cursor:pointer;border:none;background:none}
+.fqBtn:active{background:var(--acc-soft);color:var(--acc)}
+.fqBtn svg{stroke:currentColor;fill:none;stroke-linecap:round;stroke-linejoin:round;width:22px;height:22px}
+#floatBarMain{display:flex;align-items:center;padding:4px 6px;gap:0;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+#floatBarMain::-webkit-scrollbar{display:none}
+.ftb{min-width:36px;min-height:38px;padding:6px 5px;border-radius:7px;font-size:14px;color:var(--t2);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;border:none;background:none}
+.ftb:active{background:var(--acc-soft);color:var(--acc)}
+.ftbSep{width:1px;height:16px;background:var(--bd);margin:0 2px;flex-shrink:0}
+
+/* ── READ SCREEN ── */
+#readScreen{z-index:60;padding-bottom:0}
+#readTop{display:flex;align-items:center;padding:12px 14px 8px;flex-shrink:0;gap:8px;padding-top:max(12px,env(safe-area-inset-top))}
+#readDateLine{flex:1;font-size:13px;color:var(--t2);font-weight:500}
+#readScroll2{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px 16px 40px}
+#readTitle{font-size:28px;font-weight:700;color:var(--t1);margin-bottom:10px;line-height:1.2}
+#readMood{margin-bottom:8px}
+.moodBadge{display:inline-block;padding:4px 14px;border-radius:20px;font-size:13px;font-weight:600;background:var(--acc-soft);border:1px solid var(--acc);color:var(--acc)}
+#readTags{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:14px}
+.readTag{background:var(--acc-soft);color:var(--acc);padding:3px 10px;border-radius:8px;font-size:12px;font-weight:500}
+#readBody{font-size:16px;line-height:1.85;color:#d0d0d5}
+#readBody h1{font-size:22px;font-weight:700;color:var(--t1);margin:14px 0 5px}
+#readBody h2{font-size:18px;font-weight:600;color:var(--t1);margin:12px 0 4px}
+#readBody h3{font-size:16px;font-weight:600;color:var(--t1);margin:10px 0 3px}
+#readBody h4{font-size:12px;font-weight:700;color:var(--acc);margin:10px 0 3px;text-transform:uppercase;letter-spacing:.08em}
+#readBody blockquote{border-left:3px solid var(--acc);padding-left:14px;color:var(--t2);font-style:italic;margin:10px 0}
+#readBody ul,#readBody ol{padding-left:22px;margin:6px 0}
+#readBody li{margin:3px 0}
+#readBody hr{border:none;border-top:1px solid var(--bd);margin:18px 0}
+#readBody strong{color:var(--t1)}
+#readBody a{color:var(--acc)}
+#readBody img{max-width:100%;border-radius:10px;margin:10px 0;display:block;cursor:pointer}
+#readLoc{font-size:12px;color:var(--t3);margin-bottom:10px;display:flex;align-items:center;gap:4px}
+
+/* ── OVERLAYS ── */
+/* mood sheet */
+#moodSheet{position:fixed;inset:0;z-index:500;display:none}
+#moodSheet.show{display:block}
+#moodBg{position:absolute;inset:0;background:rgba(0,0,0,.6)}
+#moodPanel{position:absolute;bottom:0;left:0;right:0;background:var(--bg2);border-radius:18px 18px 0 0;padding:16px 14px calc(env(safe-area-inset-bottom) + 20px);max-height:60vh;overflow-y:auto}
+#moodPanelTitle{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+#moodPanelTitle span{font-size:15px;font-weight:700}
+.moodClose{font-size:20px;color:var(--t3);background:none;border:none;cursor:pointer;line-height:1}
+#moodChips{display:flex;flex-wrap:wrap;gap:7px}
+.moodChip{padding:8px 16px;border-radius:20px;font-size:14px;font-weight:500;border:1px solid var(--bd);color:var(--t2);background:none;cursor:pointer;transition:all .12s}
+.moodChip.on{border-color:var(--acc);color:var(--t1);background:rgba(74,158,255,.18)}
+
+/* ellipsis menu */
+#ellipsisSheet{position:fixed;inset:0;z-index:500;display:none}
+#ellipsisSheet.show{display:block}
+#ellipsisBg{position:absolute;inset:0;background:rgba(0,0,0,.5)}
+#ellipsisPanel{position:absolute;top:60px;right:14px;background:var(--bg3);border-radius:14px;min-width:220px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.5)}
+.ellipsisItem{display:flex;align-items:center;gap:12px;padding:14px 16px;font-size:15px;color:var(--t1);cursor:pointer;border-bottom:1px solid rgba(255,255,255,.06)}
+.ellipsisItem:last-child{border-bottom:none}
+.ellipsisItem:active{background:var(--bg4)}
+.ellipsisItem.danger{color:var(--danger)}
+.ellipsisItem svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+
+/* voice sheet */
+#voiceSheet{position:fixed;inset:0;z-index:600;display:none}
+#voiceSheet.show{display:block}
+#voiceBg{position:absolute;inset:0;background:rgba(0,0,0,.6)}
+#voicePanel{position:absolute;bottom:0;left:0;right:0;background:var(--bg2);border-radius:18px 18px 0 0;padding:20px 16px calc(env(safe-area-inset-bottom) + 80px);border-top:1px solid var(--bd)}
+.voicePanelHead{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.voicePanelTitle{font-size:15px;font-weight:700;color:var(--acc)}
+#vTranscript{font-size:14px;color:var(--t2);font-style:italic;min-height:24px;margin-bottom:12px;line-height:1.6;max-height:80px;overflow-y:auto}
+#vAudio{margin-bottom:10px}
+audio{width:100%;border-radius:8px}
+.vBtns{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.recOff{background:var(--acc);color:#fff;padding:8px 18px;border-radius:20px;font-size:14px;font-weight:600;border:none;cursor:pointer}
+.recOn{background:var(--danger);color:#fff;padding:8px 18px;border-radius:20px;font-size:14px;font-weight:600;border:none;cursor:pointer}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.blinking{animation:blink 1s infinite}
+.appendBtn{padding:8px 16px;border-radius:20px;font-size:13px;font-weight:600;background:var(--bg3);border:1px solid var(--bd);color:var(--t2);cursor:pointer}
+
+/* template sheet */
+#tmplSheet{position:fixed;inset:0;z-index:500;display:none}
+#tmplSheet.show{display:block}
+#tmplBg{position:absolute;inset:0;background:rgba(0,0,0,.6)}
+#tmplPanel{position:absolute;bottom:0;left:0;right:0;background:var(--bg2);border-radius:18px 18px 0 0;padding:16px 14px calc(env(safe-area-inset-bottom) + 20px);max-height:75vh;overflow-y:auto}
+.tmplHead{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.tmplHeadTitle{font-size:15px;font-weight:700}
+.tmplGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.tmplCard{background:var(--bg3);border:1px solid var(--bd);border-radius:12px;padding:14px 10px;text-align:center;cursor:pointer;transition:border-color .12s}
+.tmplCard:active,.tmplCard.prev{border-color:var(--acc)}
+.tmplCardIcon{font-size:20px;margin-bottom:5px}
+.tmplCardName{font-size:12px;font-weight:600;color:var(--t1);line-height:1.3}
+#tmplPreview{display:none;background:var(--bg3);border:1px solid var(--bd);border-radius:12px;padding:14px;margin-bottom:12px}
+#tmplPreview.show{display:block}
+#tmplPreviewTitle{font-size:14px;font-weight:700;margin-bottom:8px}
+#tmplPreviewBody{font-size:13px;color:var(--t2);white-space:pre-wrap;line-height:1.7;max-height:180px;overflow-y:auto}
+#tmplPreviewBtns{display:flex;gap:8px;margin-top:12px}
+
+/* prompts sheet */
+#promptSheet{position:fixed;inset:0;z-index:500;display:none}
+#promptSheet.show{display:block}
+#promptBg{position:absolute;inset:0;background:rgba(0,0,0,.6)}
+#promptPanel{position:absolute;bottom:0;left:0;right:0;background:var(--bg2);border-radius:18px 18px 0 0;padding:16px 14px calc(env(safe-area-inset-bottom) + 20px);max-height:70vh;overflow-y:auto}
+.promptHead{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.promptHeadTitle{font-size:15px;font-weight:700}
+.promptListItem{padding:14px;background:var(--bg3);border-radius:12px;margin-bottom:8px;cursor:pointer}
+.promptListItem:active{background:var(--bg4)}
+.promptListItemText{font-size:15px;font-weight:500;line-height:1.5;margin-bottom:6px}
+.promptListItemBtn{font-size:12px;color:var(--acc);font-weight:600}
+
+/* lightbox */
+#lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,.94);z-index:1000;align-items:center;justify-content:center;cursor:zoom-out}
+#lightbox.show{display:flex}
+#lightboxImg{max-width:92vw;max-height:92vh;border-radius:12px;object-fit:contain}
+
+/* ── SETTINGS SCREEN ── */
+#settingsScroll{flex:1;overflow-y:auto;padding:16px;-webkit-overflow-scrolling:touch}
+.settGroup{background:var(--bg2);border-radius:14px;overflow:hidden;margin-bottom:20px}
+/* ── INSIGHTS ── */
+.insightSection{margin-bottom:22px}
+.insightSectionTitle{font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px;padding:0 2px}
+.insightGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.insightCard{background:var(--bg2);border-radius:14px;padding:16px;border:1px solid var(--bd);position:relative;overflow:hidden}
+.insightCard::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--acc);opacity:.6}
+.insightCard.wide{grid-column:span 2}
+.insightCard.teal::before{background:var(--acc2)}
+.insightCard.gold::before{background:var(--gold)}
+.insightNum{font-size:28px;font-weight:700;color:var(--t1);line-height:1;margin-bottom:4px}
+.insightLabel{font-size:11px;color:var(--t3);font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+.insightSub{font-size:12px;color:var(--t2);line-height:1.4}
+.insightBar{background:var(--bg3);border-radius:6px;height:6px;margin-top:8px;overflow:hidden}
+.insightBarFill{height:100%;border-radius:6px;background:var(--acc)}
+.moodRow{display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--bd)}
+.moodRow:last-child{border-bottom:none}
+.moodRowLabel{font-size:13px;color:var(--t2)}
+.moodRowCount{font-size:13px;font-weight:600;color:var(--acc)}
+.locRow{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--bd)}
+.locRow:last-child{border-bottom:none}
+.locRowDot{width:8px;height:8px;border-radius:50%;background:var(--acc2);flex-shrink:0}
+.locRowName{flex:1;font-size:13px;color:var(--t2)}
+.locRowCount{font-size:13px;font-weight:600;color:var(--t1)}
+.streakFire{font-size:32px;margin-bottom:4px}
+.emptyInsight{text-align:center;padding:40px 20px;color:var(--t3);font-size:13px;line-height:1.6}
+.settRow{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--bd);gap:12px}
+.settRow:last-child{border-bottom:none}
+.settLabel{font-size:15px;color:var(--t1);font-weight:500}
+.settSub{font-size:12px;color:var(--t3);margin-top:2px}
+.settControl{display:flex;align-items:center;gap:8px}
+.settControl select{background:var(--bg3);border-radius:8px;padding:5px 10px;font-size:13px;color:var(--t2);border:1px solid var(--bd)}
+.settControl input[type=range]{min-width:100px}
+.fontPrev{font-size:14px;color:var(--t2);margin-top:8px;padding:12px;background:var(--bg2);border-radius:10px;border:1px solid var(--bd);line-height:1.7}
+.vTog{display:flex;gap:4px}
+.vTBtn{padding:5px 12px;border-radius:7px;font-size:12px;font-weight:500;border:1px solid var(--bd);color:var(--t3);background:none;cursor:pointer}
+.vTBtn.on{background:rgba(74,158,255,.18);border-color:var(--acc);color:var(--acc)}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- TODAY SCREEN -->
+<div class="screen active navPad" id="todayScreen">
+  <div class="topBar" style="padding-top:max(16px,env(safe-area-inset-top));flex-shrink:0">
+    <div style="flex:1">
+      <div class="todayDate" id="todayDateSub"></div>
+      <div class="todayTitle">Today</div>
+    </div>
+  </div>
+  <div id="todayScroll">
+    <!-- entries today -->
+    <div class="section">
+      <div id="todayEntryCard" class="card" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between" onclick="sNav('journals')">
+        <span id="todayEntryCount" style="font-size:16px;font-weight:500">0 Entries</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--t3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>
+    </div>
+    <!-- quick start -->
+    <div class="section">
+      <div class="sectionHead"><span class="sectionTitle">Quick Start</span></div>
+      <div class="quickGrid">
+        <div class="quickBtn" onclick="showPromptsSheet()">
+          <svg width="24" height="24" viewBox="0 0 24 24" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          <span class="quickBtnLabel">Prompts</span>
+        </div>
+        <div class="quickBtn" onclick="sNav('journals')">
+          <svg width="24" height="24" viewBox="0 0 24 24" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          <span class="quickBtnLabel">Calendar</span>
+        </div>
+      </div>
+    </div>
+    <!-- on this day -->
+    <div class="section" id="otdSection" style="display:none">
+      <div class="sectionHead">
+        <span class="sectionTitle">On This Day</span>
+        <span id="otdDateBadge" style="background:var(--bg3);border-radius:20px;padding:4px 10px;font-size:13px;color:var(--t2)"></span>
+      </div>
+      <div id="otdCard" class="card"></div>
+    </div>
+    <!-- daily prompt -->
+    <div class="section">
+      <div class="sectionHead"><span class="sectionTitle">Daily Prompt</span><span class="seeMore" onclick="showPromptsSheet()">See more</span></div>
+      <div class="promptCard" onclick="startNewWithPrompt()">
+        <div class="promptCardText" id="todayPrompt"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- JOURNALS SCREEN -->
+<div class="screen navPad" id="journalsScreen">
+  <div class="topBar" style="padding-top:max(16px,env(safe-area-inset-top));flex-shrink:0;justify-content:space-between">
+    <div class="topBarTitle" style="text-align:left">Journal</div>
+    <button onclick="sNav('settings')" class="settGear" title="Settings"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg></button>
+  </div>
+  <div class="tabBar">
+    <button class="tabBtn on" id="tabList" onclick="switchTab('list')">List</button>
+    <button class="tabBtn" id="tabCal" onclick="switchTab('cal')">Calendar</button>
+    <button class="tabBtn" id="tabMedia" onclick="switchTab('media')">Media</button>
+    <button class="tabBtn" id="tabMap" onclick="switchTab('map')">Map</button>
+  </div>
+
+  <!-- LIST -->
+  <div class="subView active" id="subList">
+    <div class="listSearch" style="display:flex;gap:6px;align-items:center">
+      <input id="searchInput" placeholder="Search entries…" oninput="curTagFilter=null;renderList()" style="flex:1">
+      <button onclick="randomEntry()" title="Random entry" style="background:var(--bg3);border:1px solid var(--bd);border-radius:9px;padding:6px 10px;color:var(--t2);cursor:pointer;font-size:16px;flex-shrink:0" title="Surprise me">✦</button>
+    </div>
+    <div id="tagFilterBanner" style="display:none;padding:4px 12px 6px;font-size:12px;color:var(--acc);display:flex;align-items:center;gap:6px">
+      <span>Filtering by tag:</span><strong id="tagFilterLabel"></strong>
+      <button onclick="clearTagFilter();renderList()" style="background:none;border:none;color:var(--t3);cursor:pointer;margin-left:auto;font-size:14px">✕ Clear</button>
+    </div>
+    <div class="filterRow">
+      <button class="pill on" id="fAll" onclick="setFilter('all')">All</button>
+      <button class="pill gold" id="fFav" onclick="setFilter('fav')">Favourites</button>
+      <button class="pill grn" id="fPin" onclick="setFilter('pin')">Pinned</button>
+    </div>
+    <div class="sortRow">
+      <select id="groupSel" onchange="renderList()">
+        <option value="date">Group: Date</option>
+        <option value="mood">Group: Mood</option>
+        <option value="tag">Group: Tag</option>
+        <option value="none">No Group</option>
+      </select>
+      <select id="sortSel" onchange="renderList()">
+        <option value="newest">Newest</option>
+        <option value="oldest">Oldest</option>
+        <option value="title">A–Z</option>
+        <option value="wc">Word Count</option>
+      </select>
+    </div>
+    <div id="otdBanner"></div>
+    <div id="listScroll"></div>
+    <div id="listEmpty" style="display:none;flex:1;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:var(--t3);padding:40px;text-align:center">
+      <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" style="opacity:.3"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+      <div style="font-size:18px;font-weight:600;color:var(--t2)">Your journal is empty</div>
+      <div style="font-size:14px;line-height:1.6;max-width:220px">Every entry is a snapshot of a version of you.</div>
+      <button class="btn btnP" onclick="startNew()" style="margin-top:6px">Write your first entry</button>
+    </div>
+  </div>
+
+  <!-- CALENDAR -->
+  <div class="subView" id="subCal">
+    <div id="calWrap"></div>
+  </div>
+
+  <!-- MEDIA -->
+  <div class="subView" id="subMedia">
+    <div id="mediaGrid"></div>
+  </div>
+
+  <!-- MAP -->
+  <div class="subView" id="subMap">
+    <div id="mapWrap">
+      <div id="mapEl" style="display:flex;align-items:center;justify-content:center;color:var(--t3);font-size:14px;padding:40px;text-align:center">
+        Map shows entries with location data.<br><br>Add location to entries to see them plotted here.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PROMPTS SCREEN -->
+<div class="screen navPad" id="promptsScreen">
+  <div class="topBar" style="padding-top:max(16px,env(safe-area-inset-top));flex-shrink:0;justify-content:space-between">
+    <div class="topBarTitle" style="text-align:left">Prompts</div>
+    <button onclick="sNav('settings')" class="settGear" title="Settings"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg></button>
+  </div>
+  <div id="promptsScroll"></div>
+</div>
+
+<!-- INSIGHTS SCREEN -->
+<div class="screen navPad" id="insightsScreen">
+  <div class="topBar" style="padding-top:max(16px,env(safe-area-inset-top));flex-shrink:0;justify-content:space-between">
+    <div class="topBarTitle" style="text-align:left;font-size:22px;font-weight:700">Insights</div>
+    <button onclick="sNav('settings')" style="color:var(--t2);padding:6px;border-radius:8px;border:1px solid var(--bd);background:none;cursor:pointer">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+    </button>
+  </div>
+  <div id="insightsScroll" style="flex:1;overflow-y:auto;padding:0 14px 20px;-webkit-overflow-scrolling:touch"></div>
+</div>
+
+<!-- SETTINGS SCREEN -->
+<div class="screen navPad" id="settingsScreen">
+  <div class="topBar" style="padding-top:max(16px,env(safe-area-inset-top));flex-shrink:0">
+    <button onclick="history.back();sNav(currentScreen||'today')" class="settGear" style="border:none">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <div class="topBarTitle">Settings</div>
+  </div>
+  <div id="settingsScroll">
+    <div class="settGroup">
+      <div class="settRow">
+        <div><div class="settLabel">Font</div></div>
+        <div class="settControl">
+          <select id="fontSel" onchange="applyFont(this.value)">
+            <option value="Plus Jakarta Sans">Plus Jakarta Sans</option>
+            <option value="DM Sans">DM Sans</option>
+            <option value="Inter">Inter</option>
+            <option value="Lora">Lora (serif)</option>
+            <option value="Merriweather">Merriweather (serif)</option>
+          </select>
+        </div>
+      </div>
+      <div class="settRow" style="flex-direction:column;align-items:flex-start">
+        <div class="settLabel">Preview</div>
+        <div class="fontPrev" id="fontPrev">The feeling is the secret. What you feel today, you create tomorrow.</div>
+      </div>
+      <div class="settRow">
+        <div><div class="settLabel">Font size</div><div class="settSub" id="fszLabel">16px</div></div>
+        <div class="settControl"><input type="range" id="fszRange" min="13" max="22" value="16" oninput="applyFontSize(this.value)"></div>
+      </div>
+      <div class="settRow">
+        <div><div class="settLabel">List view</div></div>
+        <div class="vTog"><button class="vTBtn on" id="vCompact" onclick="setListView('compact')">Compact</button><button class="vTBtn" id="vComfy" onclick="setListView('comfy')">Comfy</button></div>
+      </div>
+      <div class="settRow">
+        <div><div class="settLabel">Daily prompt</div><div class="settSub">Show on new entries</div></div>
+        <div class="settControl"><select id="pToggle" onchange="sett.showPrompt=this.value==='1';saveSett()"><option value="1">On</option><option value="0">Off</option></select></div>
+      </div>
+    </div>
+    <div class="settGroup">
+      <div class="settRow">
+        <div><div class="settLabel">Export backup</div></div>
+        <button class="btn" onclick="exportData()">Export JSON</button>
+      </div>
+      <div class="settRow">
+        <div><div class="settLabel">Import backup</div></div>
+        <button class="btn" onclick="g('importIn').click()">Import JSON</button>
+      </div>
+      <input type="file" id="importIn" accept=".json" style="display:none" onchange="importData(this)">
+    </div>
+    <!-- template manager -->
+    <div class="settGroup">
+      <div class="settRow" style="flex-direction:column;align-items:flex-start;gap:10px">
+        <div class="settLabel">My Templates</div>
+        <div id="tmgrList" style="width:100%"></div>
+        <button class="btn" onclick="newTmpl()" style="align-self:flex-start">+ New template</button>
+        <div id="tmgrForm" style="display:none;width:100%;background:var(--bg3);border-radius:10px;padding:12px">
+          <div style="font-size:10px;color:var(--acc);font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px" id="tmgrFTitle">NEW TEMPLATE</div>
+          <div style="display:flex;gap:8px;margin-bottom:8px">
+            <input id="fIcon" value="📝" style="width:52px;background:var(--bg4);border-radius:7px;padding:6px;font-size:14px;text-align:center">
+            <input id="fName" placeholder="Template name" style="flex:1;background:var(--bg4);border-radius:7px;padding:6px 10px;font-size:14px">
+          </div>
+          <textarea id="fBody" placeholder="Template body…" style="width:100%;background:var(--bg4);border-radius:7px;padding:8px;font-size:13px;min-height:100px;resize:vertical;color:var(--t1);margin-bottom:8px;font-family:var(--font)"></textarea>
+          <div style="display:flex;gap:8px"><button class="btn btnP" onclick="saveTmpl()">Save</button><button class="btn" onclick="cancelTmpl()">Cancel</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- WRITE SCREEN -->
+<div class="screen" id="writeScreen" style="z-index:80;position:fixed;inset:0;background:var(--bg);display:none;flex-direction:column">
+  <!-- Top bar -->
+  <div id="writeTop">
+    <button class="btn" onclick="cancelWrite()" style="padding:6px 12px">Cancel</button>
+    <div id="writeDateLine"><span id="writeDateTime"></span></div>
+    <button id="writeDoneBtn" onclick="saveEntry()">Done</button>
+    <button id="writeEllipsisBtn" onclick="openEllipsis('write')">⋯</button>
+  </div>
+  <!-- Mood / location / word count -->
+  <div id="writeMeta">
+    <button id="writeMoodChip" onclick="openMoodSheet()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+      <span id="writeMoodLabel">Add mood</span>
+    </button>
+    <button id="writeLocChip" onclick="getLocation()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+      <span id="writeLocLabel">Location</span>
+    </button>
+    <span id="writeWcDisplay" style="margin-left:auto;font-size:11px;color:var(--t3)">0 words</span>
+  </div>
+
+  <!-- TOOLBAR — lives here, above the editor, always visible, never affected by keyboard -->
+  <div id="floatBar" style="display:none">
+    <!-- Quick actions row: Photos / Templates / Prompts / Audio -->
+    <div id="floatQuick">
+      <button class="fqBtn" onclick="triggerPhoto()">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5" fill="currentColor" stroke="none"/><polyline points="21 15 16 10 5 21"/></svg>
+        Photos
+      </button>
+      <button class="fqBtn" onclick="openTmplSheet()">
+        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        Templates
+      </button>
+      <button class="fqBtn" onclick="showPromptsSheetForWrite()">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        Prompts
+      </button>
+      <button class="fqBtn" onclick="openVoiceSheet()">
+        <svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+        Audio
+      </button>
+    </div>
+    <!-- Formatting row -->
+    <div id="floatBarMain">
+      <button class="ftb" onmousedown="event.preventDefault()" onclick="fmt('bold')"><b>B</b></button>
+      <button class="ftb" onmousedown="event.preventDefault()" onclick="fmt('italic')"><i>I</i></button>
+      <button class="ftb" onmousedown="event.preventDefault()" onclick="fmt('underline')"><u>U</u></button>
+      <button class="ftb" onmousedown="event.preventDefault()" onclick="fmt('strikeThrough')"><s>S</s></button>
+      <div class="ftbSep"></div>
+      <button class="ftb" onmousedown="event.preventDefault()" onclick="fmt('formatBlock','h1')" style="font-size:11px;font-weight:700">H1</button>
+      <button class="ftb" onmousedown="event.preventDefault()" onclick="fmt('formatBlock','h2')" style="font-size:11px;font-weight:700">H2</button>
+      <button class="ftb" onmousedown="event.preventDefault()" onclick="fmt('formatBlock','h3')" style="font-size:11px;font-weight:700">H3</button>
+      <button class="ftb" onmousedown="event.preventDefault()" onclick="fmt('formatBlock','h4')" style="font-size:11px;font-weight:700">H4</button>
+      <div class="ftbSep"></div>
+      <button class="ftb" onmousedown="event.preventDefault()" onclick="fmt('insertUnorderedList')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+      </button>
+      <button class="ftb" onmousedown="event.preventDefault()" onclick="fmt('insertOrderedList')" style="font-size:12px">1≡</button>
+      <button class="ftb" onmousedown="event.preventDefault()" onclick="fmtBlockquote()" style="font-size:14px">❝</button>
+      <button class="ftb" onmousedown="event.preventDefault()" onclick="fmtHR()" style="font-size:14px">—</button>
+      <button class="ftb" onmousedown="event.preventDefault()" onclick="fmtLink()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+      </button>
+      <div class="ftbSep"></div>
+      <button class="ftb" onmousedown="event.preventDefault()" onclick="insertTable()" title="Insert table" style="font-size:12px;font-weight:700">⊞</button>
+      <button class="ftb" onmousedown="event.preventDefault()" onclick="fmt('hiliteColor','rgba(201,169,110,0.35)')" title="Highlight" style="font-size:14px">▐</button>
+      <div style="position:relative">
+        <button class="ftb" onmousedown="event.preventDefault()" onclick="toggleColorPicker(this)" title="Text color" style="font-size:13px;font-weight:700;color:var(--acc)">A</button>
+        <div id="colorPicker">
+          <div class="cpSwatch" style="background:#c4849a" onclick="applyColor('#c4849a')" title="Rose"></div>
+          <div class="cpSwatch" style="background:#7fb3a8" onclick="applyColor('#7fb3a8')" title="Teal"></div>
+          <div class="cpSwatch" style="background:#c9a96e" onclick="applyColor('#c9a96e')" title="Gold"></div>
+          <div class="cpSwatch" style="background:#e06b6b" onclick="applyColor('#e06b6b')" title="Red"></div>
+          <div class="cpSwatch" style="background:#7bafd4" onclick="applyColor('#7bafd4')" title="Blue"></div>
+          <div class="cpSwatch" style="background:#8fc99e" onclick="applyColor('#8fc99e')" title="Green"></div>
+          <div class="cpSwatch" style="background:#b388c4" onclick="applyColor('#b388c4')" title="Purple"></div>
+          <div class="cpSwatch" style="background:#eeedf0" onclick="applyColor('#eeedf0')" title="White"></div>
+          <div class="cpSwatch" style="background:#636366" onclick="applyColor('#636366')" title="Dim"></div>
+          <button onclick="applyColor(null)" style="font-size:11px;color:var(--t3);background:none;border:1px solid var(--bd);border-radius:6px;padding:3px 8px;cursor:pointer;width:100%">Remove color</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tags row with dropdown -->
+  <div id="writeTagsRow">
+    <input id="writeTagsInput" placeholder="Tags (comma separated)…" oninput="onTagInput()" onblur="setTimeout(hideSug,200)" onfocus="onTagFocus()">
+    <div id="tagSugBox"></div>
+  </div>
+
+  <!-- Scrollable editor area -->
+  <div id="writeScroll">
+    <div id="promptBar"><span id="promptBarText"></span><button onclick="g('promptBar').classList.remove('show')">✕</button></div>
+    <input id="writeTitleIn" placeholder="Title…">
+    <div id="writeEditor" contenteditable="true" data-placeholder="What's on your mind…" oninput="wcUpdate()"></div>
+  </div>
+
+  <input type="file" id="photoInput" accept="image/*" multiple style="display:none" onchange="handlePhotos(this)">
+</div>
+
+<!-- READ SCREEN -->
+<div class="screen" id="readScreen">
+  <div id="readTop">
+    <button class="btn" onclick="closeRead()" style="padding:6px 12px">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      Back
+    </button>
+    <div id="readDateLine" style="flex:1;font-size:13px;color:var(--t2);text-align:center"></div>
+    <button class="btn" onclick="editCurrent()" style="color:var(--acc);border-color:var(--acc)">Edit</button>
+    <button id="readEllipsisBtn" onclick="openEllipsis('read')" style="padding:6px 10px;border-radius:8px;border:1px solid var(--bd);color:var(--t2);font-size:18px;background:none;cursor:pointer">⋯</button>
+  </div>
+  <div id="readMeta2" style="padding:4px 14px 8px;font-size:11px;color:var(--t3);display:flex;align-items:center;gap:10px;flex-shrink:0;border-bottom:1px solid var(--bd)">
+    <span id="readWcLine"></span>
+  </div>
+  <div id="readScroll2">
+    <div id="readMood"></div>
+    <div id="readTitle"></div>
+    <div id="readLoc"></div>
+    <div id="readTags"></div>
+    <div id="readBody"></div>
+  </div>
+</div>
+
+<!-- MOOD SHEET -->
+<div id="moodSheet"><div id="moodBg" onclick="closeMoodSheet()"></div><div id="moodPanel"><div id="moodPanelTitle"><span>How are you feeling?</span><button class="moodClose" onclick="closeMoodSheet()">✕</button></div><div id="moodChips"></div></div></div>
+
+<!-- ELLIPSIS MENU -->
+<div id="ellipsisSheet"><div id="ellipsisBg" onclick="closeEllipsis()"></div><div id="ellipsisPanel" id="ellipsisPanel"></div></div>
+
+<!-- VOICE SHEET -->
+<div id="voiceSheet"><div id="voiceBg" onclick="closeVoiceSheet()"></div><div id="voicePanel"><div class="voicePanelHead"><span class="voicePanelTitle">Voice Note</span><button class="moodClose" onclick="closeVoiceSheet()">✕</button></div><div id="vTranscript">Tap Record to begin…</div><div id="vAudio"></div><div class="vBtns"><button id="recBtn" class="recOff" onclick="toggleRec()">Record</button><button id="appendBtn" class="appendBtn" style="display:none" onclick="appendTranscript()">+ Add to entry</button></div></div></div>
+
+<!-- TEMPLATE SHEET -->
+<div id="tmplSheet"><div id="tmplBg" onclick="closeTmplSheet()"></div><div id="tmplPanel"><div class="tmplHead"><span class="tmplHeadTitle">Choose a template</span><button class="moodClose" onclick="closeTmplSheet()">✕</button></div><div class="tmplGrid" id="tmplGrid"></div><div id="tmplPreview"><div id="tmplPreviewTitle"></div><div id="tmplPreviewBody"></div><div id="tmplPreviewBtns"><button class="btn btnP" onclick="usePreviewedTmpl()">Use template</button><button class="btn" onclick="clearTmplPreview()">Back</button></div></div><button class="btn" style="width:100%;justify-content:center;margin-top:6px" onclick="closeTmplSheet();sNav('settings')">Manage templates</button></div></div>
+
+<!-- PROMPTS SHEET -->
+<div id="promptSheet"><div id="promptBg" onclick="closePromptSheet()"></div><div id="promptPanel"><div class="promptHead"><span class="promptHeadTitle">Writing Prompts</span><button class="moodClose" onclick="closePromptSheet()">✕</button></div><div id="promptList"></div></div></div>
+
+<!-- LIGHTBOX -->
+<div id="lightbox" onclick="g('lightbox').classList.remove('show')"><img id="lightboxImg" src="" alt=""></div>
+
+</div><!-- /app -->
+
+<!-- BOTTOM NAV -->
+<div id="nav">
+  <button class="navBtn on" id="nToday" onclick="sNav('today')">
+    <svg width="22" height="22" viewBox="0 0 24 24" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    Today
+  </button>
+  <button class="navBtn" id="nJournals" onclick="sNav('journals')">
+    <svg width="22" height="22" viewBox="0 0 24 24" stroke-width="1.8"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+    Journals
+  </button>
+  <button class="navBtn" onclick="startNew()" style="padding-top:4px">
+    <div id="navNewBtn">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    </div>
+  </button>
+  <button class="navBtn" id="nPrompts" onclick="sNav('prompts')">
+    <svg width="22" height="22" viewBox="0 0 24 24" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    Prompts
+  </button>
+  <button class="navBtn" id="nInsights" onclick="sNav('insights')">
+    <svg width="22" height="22" viewBox="0 0 24 24" stroke-width="1.8"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+    Insights
+  </button>
+</div>
+
+<script>
+const EK='jv8e',TK='jv8t',SK='jv8s',PK='jv8p';
+const MOODS=['Happy','Loved','Calm','Peaceful','Energized','Motivated','Excited','Grateful','Reflective','Dreamy','Content','Neutral','Unsettled','Low','Anxious','Frustrated','Overwhelmed','Sad','Tired','Transforming','Numb','Dark'];
+const BUILTIN=[
+  {id:'morning',name:'Morning Pages',icon:'🌅',body:'Good morning. Right now I feel:\n\n\nWhat\'s taking up space in my mind:\n\n\nI\'m grateful for:\n\n\nMy intention today:\n'},
+  {id:'evening',name:'Evening Reflection',icon:'🌙',body:'Today I learned:\n\n\nSomething that challenged me:\n\n\nSomething I\'m proud of:\n\n\nWhat I\'m carrying into tomorrow:\n'},
+  {id:'braindump',name:'Brain Dump',icon:'🌪',body:'Everything on my mind right now — unfiltered:\n\n'},
+  {id:'selfcheck',name:'Self Check-In',icon:'🪞',body:'Mind:\n\n\nBody:\n\n\nSpirit:\n\n\nWhat do I need that I\'m not giving myself?\n'},
+  {id:'manifest',name:'Manifestation',icon:'✨',body:'Living as if it\'s already real:\n\n\nHow this feels in my body:\n\n\nWhat I\'m choosing to believe today:\n'},
+  {id:'weekly',name:'Weekly Review',icon:'📆',body:'Week of:\n\nHighlights:\n\n\nWhere I felt off:\n\n\nPatterns I noticed:\n\n\nWhat I want next week to feel like:\n'},
+  {id:'gratitude',name:'Gratitude',icon:'🙏',body:'Three things I\'m grateful for:\n1. \n2. \n3. \n\nWhy each matters:\n'},
+  {id:'letter',name:'Letter to Self',icon:'✉️',body:'Dear future me,\n\n'},
+];
+const ALL_PROMPTS=[
+"What's sitting with you that you haven't said out loud yet?","What version of yourself showed up today?","What are you carrying that doesn't belong to you?","What would feel like a full exhale right now?","Where did you feel most like yourself today?","What's a belief you're quietly questioning?","What is your body asking for that your mind keeps ignoring?","What are you becoming?","If today had a colour, what would it be and why?","What do you know now that you didn't know last year?","What would you tell the version of you from a year ago?","What's something you've been avoiding thinking about?","What feeling have you been trying to outrun lately?","What's one thing you're proud of that you haven't told anyone?","What does your body feel like right now?","What would unconditional love for yourself look like today?","What's the most honest thing you could say right now?","When did you last feel completely at peace?","What story are you telling yourself that might not be true?","What do you need to forgive yourself for?","What's draining you that you keep pretending isn't?","What would you do if you knew you couldn't fail?","What part of yourself have you been neglecting?","What does success feel like to you right now, not what it looks like?","What are you grateful for that you rarely acknowledge?","What's one relationship you want to invest more in?","What boundary do you need to set or reinforce?","What are you most afraid of and why?","What would your highest self do today?","What's something you want but feel guilty for wanting?","Who inspires you and what quality in them do you see in yourself?","What are three words that describe where you are right now?","What conversation have you been avoiding?","What does home feel like to you?","What do you want your life to feel like, not look like?","When do you feel most creative?","What habit is quietly holding you back?","What are you over-explaining or over-justifying lately?","What would you do with one completely free day?","What's something you keep meaning to do and why haven't you?","What does rest actually feel like for you?","What emotion do you have the hardest time expressing?","What would you change about your daily routine?","What's something you've learned about yourself this month?","What do people misunderstand about you?","What makes you feel most alive?","What's a memory that still makes you smile unexpectedly?","What are you holding on to that you need to release?","What does your inner critic say most often?","How would you respond to your inner critic with kindness?","What's one small thing that brought you joy today?","What does your ideal morning look like?","What would you do differently if you had this week again?","What's a fear that has shrunk over time?","What's a fear that has grown?","What are you in the middle of right now?","What chapter of your life are you currently in?","What would your future self thank you for doing today?","What are you learning about love?","What are you learning about yourself through your relationships?","What does your relationship with money feel like?","What does your relationship with your body feel like right now?","What are you teaching others by how you live?","What's a belief from childhood you're still carrying?","What would you do if you weren't worried about what others think?","What kind of person do you want to be remembered as?","What's something you want to say but haven't?","What's working in your life right now?","What's not working that you've been tolerating?","What do you need more of?","What do you need less of?","What does a good day feel like for you?","What did you learn from your biggest mistake?","What are your non-negotiables for your peace?","What does your intuition keep telling you?","What's a compliment you've received that you didn't fully believe?","What would you attempt if you were ten times braver?","What does courage look like in your life right now?","What's the most important decision you're currently facing?","What values are most important to you and are you living by them?","What would you regret not doing in ten years?","What's something you've been putting off starting?","What's a goal you've quietly given up on that you still care about?","How do you want to feel at the end of this year?","What do you need to believe about yourself to move forward?","What would you tell a friend going through what you're going through?","What's something you're proud of that you never talk about?","What are you learning to let go of?","What are you still learning to hold on to?","When did you last surprise yourself?","What is love asking of you right now?","What is fear asking of you right now?","What does your ideal evening look like?","What has changed about you in the last five years?","What do you want to change in the next five years?","What's something you want to experience before the end of this year?","What's a question you keep coming back to?","What's a question you've finally found peace with?","Who do you miss and why?","What's something you've accepted recently that was hard to accept?","What's something you're still resisting?","What's a dream you've kept private?","What would your life look like if you fully trusted yourself?","What does your relationship with solitude feel like?","What do you do when you feel overwhelmed?","What do you do when you feel at your best?","What's something your younger self would be proud of?","What's something your younger self wouldn't understand about you yet?","What's something that used to matter to you that no longer does?","What's something that matters to you now that didn't before?","What are you currently trying to prove and to whom?","What would you stop doing if you didn't need to impress anyone?","What does your morning energy tell you about your life?","What are you pretending not to know?","What's a truth you've been dancing around?","What does growth feel like in your body right now?","What's a risk you took that paid off?","What's a risk you took that didn't, and what did you learn?","What's something you wish someone would ask you about?","What part of your life feels most authentic?","What part of your life feels most performative?","What's a pattern you keep repeating?","What would break that pattern?","What does your relationship with time feel like?","What are you rushing that deserves to be slow?","What are you making harder than it needs to be?","What comes easily to you that others find difficult?","What's difficult for you that others seem to do effortlessly?","What does your creativity need right now?","What does your spirituality look like right now?","What's a ritual that grounds you?","What would it mean to fully accept where you are right now?","What is your body asking you to pay attention to?","What's a conversation that changed you?","What's a book, song, or film that lives in you?","What do you want your relationships to feel like?","What do you bring to the people you love?","What do you need from the people you love?","What does safety feel like to you?","When do you feel safest?","What are you healing?","What has helped you heal?","What do you wish someone had told you sooner?","What do you want to teach your future children, or the next generation?","What does your relationship with failure look like?","What does your relationship with success look like?","What's a compliment you want to give yourself?","What's a question your heart keeps asking?","What are you celebrating today, even if it's small?","What's been the most meaningful part of this week?","What's been the hardest part of this week and how did you handle it?","What does loyalty mean to you?","What does trust mean to you?","What does freedom mean to you?","What does peace mean to you?","What does enough mean to you?","What would you do differently if you weren't afraid of starting over?","What's a chapter of your life you're still writing?","What's a chapter you've finally closed?","What does your gut tell you about a decision you're currently avoiding?","What would saying yes to yourself look like today?","What would saying no look like today?","What's something you need to hear right now?","What's something you already know but keep forgetting?","What are you building toward?","What are you walking away from?","What's a moment from this year that you want to remember?","What's something you've done this month that took courage?","What do you wish you had more patience for?","What are you most curious about right now?","What's something you want to understand better?","What's a skill you want to develop?","What does discipline feel like to you?","What does discipline look like in your life right now?","What would you do today if it were the last one just like this?","What would you want people to say about you when you leave a room?","What does your most inspired self need to thrive?","What's stopping you from showing up as that version of yourself?","What's something you've outgrown?","What's something you're still growing into?","What does your relationship with your body need right now?","What's something your body has been through that you haven't thanked it for?","What does joy look like in small doses for you?","What does joy look like in its fullest form?","What's the most loving thing you could do for yourself right now?","What's something you've been overthinking?","What would a simpler approach look like?","What are you overthinking that your gut already knows?","What's a question someone else would have about your life?","What's your honest answer to it?","What's one thing you want to remember about this season of your life?","What's a feeling you've been sitting with that you haven't named yet?","What does your energy feel like when you're around the people closest to you?","What does inspiration feel like in your body?","What's something you've been comparing yourself to others about?","What's uniquely yours that can't be compared?","What's something that's shifted in how you see the world this year?","What's a perspective you've held that you're questioning?","What's a perspective you've gained that has freed you?","What are you learning about what you actually need versus what you want?","What's a season of your life you look back on with tenderness?","What's a season you look back on with relief that it's over?","What does your inner child need from you right now?","What's something you did today that was just for you?","What would a gentler version of your day have looked like?","What's something you want to do just for the experience, not the outcome?","What's a belief that is limiting you that you're ready to release?","What's a new belief you want to step into?","What would it look like to fully inhabit your own life?","What's something you want to do before you feel ready?","What does showing up for yourself look like this week?","What's something you're grieving right now, even if it's small?","What's something you're welcoming in?","What's a truth that's difficult for you to say out loud?","What's something that's shifting in you that you can't fully articulate yet?","What do you want the next 30 days to feel like?","What's something you want to say to someone who may never read it?","What are you done with?","What are you just beginning?","What's the most honest sentence you could write right now?","What do you want to remember about who you are at this exact moment?","What's something you've learned about yourself through loss?","What's something you've learned about yourself through love?","What does showing up as your whole self look like?","What part of yourself do you hide most often?","What would it take to stop hiding it?","What's a moment this week when you felt proud of yourself?","What's a moment this week when you could have been kinder to yourself?","What's a small thing that has been making your days better?","What's a small thing that has been making your days harder?","What does your nervous system need right now?","What's something you've said yes to that you meant to say no to?","What's something you've said no to that you're proud of?","What's a word that describes your energy right now?","What's a word you want to embody this month?","What does a meaningful life look like to you right now?","What's something you want to protect in yourself?","What's something you want to nurture in yourself?","What does the best version of your relationship with yourself feel like?","What's one thing you can do today to move toward that?","What are you leaving behind as you move into this next chapter?","What are you taking with you?","What does hope look like for you right now?","What does healing look like for you right now?","What does love look like for you right now?","What's something you want to commit to?","What's something you want to release yourself from?","What does your most grounded self know that your anxious self forgets?","What would you write if no one would ever read it?","What's a question you're scared to answer?","What's your answer to it?","What's something you've never written about before?","Write it now.","What do you want your relationship with yourself to feel like in one year?","What's one step toward that?","What's something you want to celebrate about yourself right now?","What's something you want to acknowledge yourself for?","What do you want to carry into tomorrow?"
+];
+let customPrompts=[];
+
+let entries=[],uTmpls=[],sett={font:'Plus Jakarta Sans',fontSize:16,listView:'compact',showPrompt:true};
+let activeId=null,editingId=null,selMood=null,editTmplId=null,curFilter='all',previewTmplId=null;
+let isRec=false,mediaRec=null,chunks=[],recog=null,liveT='';
+let calY=new Date().getFullYear(),calM=new Date().getMonth();
+let draftLoc=null,currentScreen='today',ellipsisContext='';
+const TODAY=new Date();
+
+function g(id){return document.getElementById(id)}
+function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function fmtDate(iso){return new Date(iso).toLocaleDateString('en-CA',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}
+function fmtTime(iso){return new Date(iso).toLocaleTimeString('en-CA',{hour:'2-digit',minute:'2-digit'})}
+function fmtMonth(iso){return new Date(iso).toLocaleDateString('en-CA',{month:'long',year:'numeric'})}
+function sameDay(a,b){return a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate()}
+function wc(body){return plainText(body||'').split(/\s+/).filter(Boolean).length}
+function allTags(){const s=new Set();entries.forEach(e=>(e.tags||[]).forEach(t=>s.add(t)));return[...s].sort()}
+function plainText(html){
+  // Insert separator between block-level elements so "Today I learned:Yeah" becomes "Today I learned: · Yeah"
+  return(html||'')
+    .replace(/<\/(h[1-4]|p|li|div|blockquote)>/gi,' · ')
+    .replace(/<br\s*\/?>/gi,' ')
+    .replace(/<[^>]+>/g,'')
+    .replace(/&nbsp;/g,' ').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&#39;/g,"'").replace(/&quot;/g,'"')
+    .replace(/\s*·\s*·\s*/g,' · ')  // collapse double separators
+    .replace(/^\s*·\s*/,'')          // trim leading separator
+    .replace(/\s+/g,' ').trim();
+}
+
+// ── LOAD / SAVE ──
+function load(){
+  try{const e=localStorage.getItem(EK);if(e)entries=JSON.parse(e);const t=localStorage.getItem(TK);if(t)uTmpls=JSON.parse(t);const s=localStorage.getItem(SK);if(s)sett={...sett,...JSON.parse(s)};const p=localStorage.getItem(PK);if(p)customPrompts=JSON.parse(p);}catch(e){}
+  applySett();initToday();renderList();renderPromptsScreen();renderTmgrList();renderTmplGrid();
+}
+function persist(){try{localStorage.setItem(EK,JSON.stringify(entries));}catch(e){}}
+function persistT(){try{localStorage.setItem(TK,JSON.stringify(uTmpls));}catch(e){}}
+function persistP(){try{localStorage.setItem(PK,JSON.stringify(customPrompts));}catch(e){}}
+function saveSett(){try{localStorage.setItem(SK,JSON.stringify(sett));}catch(e){}}
+
+function applySett(){
+  const stack=`'${sett.font}',sans-serif`;
+  document.documentElement.style.setProperty('--font',stack);
+  document.body.style.fontFamily=stack;
+  [g('writeEditor'),g('writeTitleIn'),g('readBody'),g('fontPrev')].forEach(el=>{if(el)el.style.fontFamily=stack;});
+  document.querySelectorAll('button,input,textarea,select').forEach(el=>{el.style.fontFamily=stack;});
+  if(g('fontSel'))g('fontSel').value=sett.font;
+  if(g('fszRange'))g('fszRange').value=sett.fontSize;
+  if(g('fszLabel'))g('fszLabel').textContent=sett.fontSize+'px';
+  if(g('fontPrev')){g('fontPrev').style.fontFamily=stack;g('fontPrev').style.fontSize=sett.fontSize+'px';}
+  if(g('writeEditor'))g('writeEditor').style.fontSize=sett.fontSize+'px';
+  if(g('readBody'))g('readBody').style.fontSize=sett.fontSize+'px';
+  if(g('pToggle'))g('pToggle').value=sett.showPrompt?'1':'0';
+  if(g('vCompact'))g('vCompact').classList.toggle('on',sett.listView==='compact');
+  if(g('vComfy'))g('vComfy').classList.toggle('on',sett.listView==='comfy');
+}
+function applyFont(v){sett.font=v;saveSett();applySett();}
+function applyFontSize(v){sett.fontSize=+v;saveSett();g('fszLabel').textContent=v+'px';[g('writeEditor'),g('readBody'),g('fontPrev')].forEach(el=>{if(el)el.style.fontSize=v+'px';});}
+function setListView(v){sett.listView=v;saveSett();g('vCompact').classList.toggle('on',v==='compact');g('vComfy').classList.toggle('on',v==='comfy');renderList();}
+
+// ── SCREEN NAV ──
+function sNav(v){
+  const screens={today:'todayScreen',journals:'journalsScreen',prompts:'promptsScreen',settings:'settingsScreen',insights:'insightsScreen'};
+  document.querySelectorAll('.screen').forEach(s=>{if(!s.id.includes('read')&&!s.id.includes('write'))s.classList.remove('active');});
+  if(screens[v]){g(screens[v]).classList.add('active');}
+  ['nToday','nJournals','nPrompts','nInsights'].forEach(id=>g(id)?.classList.remove('on'));
+  const navMap={today:'nToday',journals:'nJournals',prompts:'nPrompts',insights:'nInsights'};
+  if(navMap[v])g(navMap[v])?.classList.add('on');
+  currentScreen=v;
+  if(v==='journals')renderList();
+  if(v==='prompts')renderPromptsScreen();
+  if(v==='insights')renderInsights();
+  if(v==='settings')renderTagManager();
+}
+
+// ── TODAY ──
+function initToday(){
+  const d=TODAY;
+  g('todayDateSub').textContent=d.toLocaleDateString('en-CA',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+  const todayEntries=entries.filter(e=>sameDay(new Date(e.createdAt),TODAY));
+  g('todayEntryCount').textContent=todayEntries.length+' '+(todayEntries.length===1?'Entry':'Entries');
+  // prompt
+  g('todayPrompt').textContent=allPrompts()[Math.floor(Math.random()*allPrompts().length)].text;
+  // OTD
+  const mem=entries.filter(e=>{const dd=new Date(e.createdAt);return dd.getMonth()===TODAY.getMonth()&&dd.getDate()===TODAY.getDate()&&!sameDay(dd,TODAY);});
+  if(mem.length){
+    g('otdSection').style.display='block';
+    const m=TODAY.toLocaleDateString('en-CA',{month:'short',day:'numeric'});
+    g('otdDateBadge').textContent=m;
+    g('otdCard').innerHTML=mem.slice(0,2).map(e=>{const yr=new Date(e.createdAt).getFullYear();const ago=TODAY.getFullYear()-yr;return`<div style="padding:8px 0;border-bottom:1px solid var(--bd);cursor:pointer" onclick="openEntry('${e.id}')"><div style="font-size:11px;color:var(--t3);margin-bottom:2px">${yr} · ${ago===1?'1 year ago':ago+' years ago'}</div><div style="font-size:14px;font-weight:600">${esc(e.title||'Untitled')}</div><div style="font-size:12px;color:var(--t2);margin-top:2px">${esc(plainText(e.body||'').slice(0,70))}</div></div>`;}).join('');
+  }
+}
+
+// ── TABS ──
+function switchTab(t){
+  ['list','cal','media','map'].forEach(id=>{g('sub'+id.charAt(0).toUpperCase()+id.slice(1)).classList.remove('active');g('tab'+id.charAt(0).toUpperCase()+id.slice(1)).classList.remove('on');});
+  g('sub'+t.charAt(0).toUpperCase()+t.slice(1)).classList.add('active');
+  g('tab'+t.charAt(0).toUpperCase()+t.slice(1)).classList.add('on');
+  if(t==='cal')renderCal();
+  if(t==='media')renderMedia();
+  if(t==='map')renderMap();
+}
+
+// ── ENTRY LIST ──
+function setFilter(f){
+  curFilter=f;
+  ['fAll','fFav','fPin'].forEach(id=>g(id).classList.remove('on'));
+  if(f==='all')g('fAll').classList.add('on');
+  else if(f==='fav')g('fFav').classList.add('on');
+  else if(f==='pin')g('fPin').classList.add('on');
+  renderList();
+}
+function getFiltered(){
+  const rawQ=(g('searchInput')?.value||'');
+  const q=rawQ.toLowerCase();
+  let arr=entries.filter(e=>{
+    if(curFilter==='fav'&&!e.fav)return false;
+    if(curFilter==='pin'&&!e.pinned)return false;
+    if(!q)return true;
+    if(curTagFilter)return(e.tags||[]).includes(curTagFilter);
+    if(q.startsWith('#')){const tag=q.slice(1);return(e.tags||[]).some(t=>t.toLowerCase().includes(tag));}
+    return(e.title||'').toLowerCase().includes(q)||(e.body||'').replace(/<[^>]+>/g,'').toLowerCase().includes(q)||(e.tags||[]).some(t=>t.toLowerCase().includes(q));
+  });
+  const sort=(g('sortSel')?.value)||'newest';
+  if(sort==='newest')arr.sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+  else if(sort==='oldest')arr.sort((a,b)=>new Date(a.createdAt)-new Date(b.createdAt));
+  else if(sort==='title')arr.sort((a,b)=>(a.title||'').localeCompare(b.title||''));
+  else if(sort==='wc')arr.sort((a,b)=>wc(b.body)-wc(a.body));
+  arr.sort((a,b)=>(b.pinned?1:0)-(a.pinned?1:0));
+  return arr;
+}
+function groupEntries(arr){
+  const by=(g('groupSel')?.value)||'date';
+  if(by==='none')return[['',arr]];
+  if(by==='date'){const m={};arr.forEach(e=>{const k=fmtMonth(e.createdAt);if(!m[k])m[k]=[];m[k].push(e);});return Object.entries(m);}
+  if(by==='mood'){const m={};arr.forEach(e=>{const k=e.mood||'No mood';if(!m[k])m[k]=[];m[k].push(e);});return Object.entries(m);}
+  if(by==='tag'){const m={'Untagged':[]};arr.forEach(e=>{if(!(e.tags||[]).length)m['Untagged'].push(e);else e.tags.forEach(t=>{if(!m[t])m[t]=[];m[t].push(e);});});return Object.entries(m).filter(([,v])=>v.length);}
+  return[['',arr]];
+}
+function renderList(){
+  const arr=getFiltered();
+  const scr=g('listScroll');
+  const empty=g('listEmpty');
+  // Tag filter banner
+  const banner=g('tagFilterBanner');
+  if(banner){if(curTagFilter){banner.style.display='flex';g('tagFilterLabel').textContent='#'+curTagFilter;}else{banner.style.display='none';}}
+  if(!arr.length){if(scr)scr.innerHTML='';if(empty)empty.style.display='flex';return;}
+  if(empty)empty.style.display='none';
+  const comfy=sett.listView==='comfy';
+  const groups=groupEntries(arr);
+  if(scr)scr.innerHTML=groups.map(([label,items])=>(label?`<div class="eGroup">${esc(label)}</div>`:'')+items.map(e=>{
+    const d=new Date(e.createdAt);
+    const rawSnip=plainText(e.body||'');
+    const snip=rawSnip.slice(0,comfy?160:110);
+    // Style the · separators in accent colour
+    const snipHtml=esc(snip||'—').replace(/·/g,'<span style="color:var(--acc);opacity:.7">·</span>');
+    return`<div class="eCard${activeId===e.id?' sel':''}" onclick="openEntry('${e.id}')">
+      ${e.pinned?'<div class="ePinDot"></div>':''}
+      <div class="eCardTitle">${e.fav?'★ ':''} ${esc(e.title||'Untitled entry')}</div>
+      <div class="eCardSnip" style="${comfy?'-webkit-line-clamp:3':''}">${snipHtml}</div>
+      <div class="eCardMeta">
+        <span>${fmtTime(e.createdAt)}</span>
+        ${e.mood?`<span class="eMetaChip">${esc(e.mood)}</span>`:''}
+        ${e.location?`<span>· ${esc(e.location)}</span>`:''}
+        ${(e.tags||[]).slice(0,2).map(t=>`<span class="eMetaChip">${esc(t)}</span>`).join('')}
+      </div>
+    </div>`;
+  }).join('')).join('');
+}
+
+// ── OPEN / EDIT ENTRY ──
+function openEntry(id){
+  activeId=id;
+  const e=entries.find(x=>x.id===id);if(!e)return;
+  g('readDateLine').textContent=fmtDate(e.createdAt)+' · '+fmtTime(e.createdAt);
+  g('readMood').innerHTML=e.mood?`<span class="moodBadge">${esc(e.mood)}</span>`:'';
+  g('readTitle').innerHTML=e.title?`<div style="font-size:28px;font-weight:700;color:var(--t1);margin-bottom:10px;line-height:1.2">${esc(e.title)}</div>`:'';
+  g('readLoc').innerHTML=e.location?`<div style="font-size:12px;color:var(--t3);margin-bottom:10px;display:flex;align-items:center;gap:4px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>${esc(e.location)}</div>`:'';
+  g('readTags').innerHTML=(e.tags||[]).map(t=>`<span class="readTag">${esc(t)}</span>`).join('');
+  g('readBody').innerHTML=e.body||'';
+  g('readBody').querySelectorAll('img').forEach(img=>{img.style.cursor='zoom-in';img.onclick=()=>{g('lightboxImg').src=img.src;g('lightbox').classList.add('show');};});
+  // word count + reading time
+  const rwc=wc(e.body);const rt=Math.max(1,Math.round(rwc/200));
+  g('readWcLine').textContent=`${rwc} words · ~${rt} min read`;
+  // make tags clickable to filter
+  g('readTags').innerHTML=(e.tags||[]).map(t=>`<span class="readTag" style="cursor:pointer" onclick="filterByTag('${esc(t)}')">${esc(t)}</span>`).join('');
+  g('readScreen').classList.add('active');
+  renderList();
+}
+function filterByTag(tag){
+  g('readScreen').classList.remove('active');
+  activeId=null;
+  sNav('journals');
+  // Set filter to show only this tag
+  g('searchInput').value='#'+tag;
+  curTagFilter=tag;
+  renderList();
+}
+let curTagFilter=null;
+function clearTagFilter(){curTagFilter=null;if(g('searchInput').value.startsWith('#'))g('searchInput').value='';}
+
+function randomEntry(){
+  if(!entries.length)return;
+  const r=entries[Math.floor(Math.random()*entries.length)];
+  openEntry(r.id);
+}
+function closeRead(){g('readScreen').classList.remove('active');activeId=null;renderList();}
+function editCurrent(){const e=entries.find(x=>x.id===activeId);if(!e)return;closeRead();openWrite(e);}
+
+// ── WRITE ENTRY ──
+function startNew(promptText){
+  openWrite(null,promptText);
+}
+function startNewWithPrompt(){
+  const p=g('todayPrompt')?.textContent;
+  openWrite(null,p,p);  // pass prompt as both promptText and title
+  sNav('today');
+}
+function openWrite(entry,promptText,presetTitle){
+  try{
+    editingId=entry?entry.id:null;
+    selMood=entry?.mood||null;
+    draftLoc=entry?.location||null;
+    draftLat=entry?._lat||null;draftLon=entry?._lon||null;
+    g('writeTitleIn').value=entry?.title||presetTitle||'';
+    g('writeEditor').innerHTML=entry?.body||'';
+    g('writeTagsInput').value=entry?(entry.tags||[]).join(', '):'';
+    g('writeWcDisplay').textContent='0 words';
+    const now=new Date();
+    g('writeDateTime').textContent=now.toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric',year:'numeric'})+' · '+now.toLocaleTimeString('en-CA',{hour:'2-digit',minute:'2-digit'});
+    updateMoodChip();
+    g('writeLocLabel').textContent=draftLoc||'Location';
+    const pb=g('promptBar');
+    if(promptText&&sett.showPrompt){g('promptBarText').textContent=promptText;pb.classList.add('show');}
+    else pb.classList.remove('show');
+    g('writeScreen').style.display='flex';
+    g('floatBar').style.display='flex';
+    wcUpdate();
+    if(!entry&&!draftLoc)silentGeoTag();
+    setupViewport();
+    setTimeout(()=>{try{g('writeEditor').focus();}catch(e){}},150);
+  }catch(err){console.warn('openWrite error',err);}
+}
+function setupViewport(){/* no-op: toolbar is in flow now */}
+function positionFloatBar(){/* no-op */}
+function teardownFloatBar(){
+  try{if(window.visualViewport)window.visualViewport.removeEventListener('resize',positionFloatBar);}catch(e){}
+}
+let draftLat=null,draftLon=null;
+function silentGeoTag(){
+  try{
+    if(!navigator.geolocation)return;
+    navigator.geolocation.getCurrentPosition(pos=>{
+      const{latitude:lat,longitude:lon}=pos.coords;
+      draftLat=lat;draftLon=lon;
+      fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`)
+        .then(r=>r.json()).then(d=>{
+          const city=d.address?.city||d.address?.town||d.address?.village||'';
+          const country=d.address?.country||'';
+          draftLoc=city?`${city}, ${country}`:country||`${lat.toFixed(3)}, ${lon.toFixed(3)}`;
+          try{g('writeLocLabel').textContent=draftLoc;}catch(e){}
+        }).catch(()=>{
+          draftLoc=`${pos.coords.latitude.toFixed(3)}, ${pos.coords.longitude.toFixed(3)}`;
+          try{g('writeLocLabel').textContent=draftLoc;}catch(e){}
+        });
+    },{timeout:8000,enableHighAccuracy:false});
+  }catch(e){}
+}
+function cancelWrite(){
+  closeWriteScreen();
+  if(activeId)openEntry(activeId);
+  else sNav('journals');
+}
+function closeWriteScreen(){
+  try{g('writeScreen').style.display='none';}catch(e){}
+  try{g('floatBar').style.display='none';}catch(e){}
+  teardownFloatBar();
+}
+function saveEntry(){
+  const title=g('writeTitleIn').value.trim();
+  const body=g('writeEditor').innerHTML;
+  const raw=(g('writeEditor').innerText||'').trim();
+  if(!raw&&!title)return;
+  const tags=g('writeTagsInput').value?g('writeTagsInput').value.split(',').map(t=>t.trim()).filter(Boolean):[];
+  const data={title,body,mood:selMood,tags,location:draftLoc,_lat:draftLat,_lon:draftLon,updatedAt:new Date().toISOString()};
+  if(editingId){
+    entries=entries.map(e=>e.id===editingId?{...e,...data}:e);
+    editingId=null;
+  } else {
+    const ne={id:Date.now().toString(),...data,fav:false,pinned:false,createdAt:new Date().toISOString()};
+    entries=[ne,...entries];
+  }
+  persist();
+  closeWriteScreen();
+  sNav('journals');
+  initToday();
+}
+function deleteCurrentEntry(){
+  if(!activeId||!confirm('Delete this entry?'))return;
+  entries=entries.filter(e=>e.id!==activeId);activeId=null;persist();
+  closeWriteScreen();
+  g('readScreen').classList.remove('active');
+  renderList();initToday();
+  closeEllipsis();
+}
+function toggleFav(){const e=entries.find(x=>x.id===activeId);if(!e)return;e.fav=!e.fav;persist();renderList();closeEllipsis();}
+function togglePin(){const e=entries.find(x=>x.id===activeId);if(!e)return;e.pinned=!e.pinned;persist();renderList();closeEllipsis();}
+
+// ── FORMATTING ──
+function fmt(cmd,val){g('writeEditor').focus();document.execCommand(cmd,false,val||null);}
+function insertTable(){
+  g('writeEditor').focus();
+  const rows=parseInt(prompt('Number of rows (e.g. 3):')||'3');
+  const cols=parseInt(prompt('Number of columns (e.g. 3):')||'3');
+  if(!rows||!cols||rows<1||cols<1)return;
+  let t='<table><thead><tr>'+Array(cols).fill('<th>Header</th>').join('')+'</tr></thead><tbody>';
+  for(let r=0;r<rows;r++)t+='<tr>'+Array(cols).fill('<td>&nbsp;</td>').join('')+'</tr>';
+  t+='</tbody></table><p><br></p>';
+  document.execCommand('insertHTML',false,t);
+}
+function toggleColorPicker(btn){
+  const cp=g('colorPicker');
+  // position relative to button
+  const r=btn.getBoundingClientRect();
+  cp.style.top=(r.bottom+4)+'px';
+  cp.style.left=Math.max(4,r.left-80)+'px';
+  cp.style.position='fixed';
+  cp.classList.toggle('show');
+  if(cp.classList.contains('show')){
+    setTimeout(()=>document.addEventListener('click',()=>cp.classList.remove('show'),{once:true}),50);
+  }
+}
+function applyColor(color){
+  g('colorPicker').classList.remove('show');
+  g('writeEditor').focus();
+  if(!color){document.execCommand('removeFormat',false,null);return;}
+  document.execCommand('foreColor',false,color);
+}
+function fmtBlockquote(){g('writeEditor').focus();document.execCommand('formatBlock',false,'blockquote');}
+function fmtHR(){g('writeEditor').focus();document.execCommand('insertHTML',false,'<hr>');}
+function fmtLink(){
+  // Save selection before showing dialog
+  const sel=window.getSelection();
+  const range=sel&&sel.rangeCount?sel.getRangeAt(0).cloneRange():null;
+  // Show inline link dialog
+  const existing=g('linkDialog');if(existing)existing.remove();
+  const dlg=document.createElement('div');
+  dlg.id='linkDialog';
+  dlg.style.cssText='position:fixed;inset:0;z-index:600;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;padding:20px';
+  dlg.innerHTML=`<div style="background:var(--bg2);border-radius:14px;padding:20px;width:100%;max-width:320px">
+    <div style="font-size:15px;font-weight:700;margin-bottom:12px">Insert Link</div>
+    <input id="linkUrlIn" placeholder="https://…" style="width:100%;background:var(--bg3);border:1px solid var(--bd);border-radius:8px;padding:10px 12px;font-size:15px;color:var(--t1);margin-bottom:12px;display:block">
+    <div style="display:flex;gap:8px">
+      <button onclick="confirmLink('${range?'yes':'no'}')" style="flex:1;background:var(--acc);color:#fff;border:none;border-radius:8px;padding:10px;font-size:14px;font-weight:600;cursor:pointer">Insert</button>
+      <button onclick="g('linkDialog').remove()" style="flex:1;background:var(--bg3);color:var(--t2);border:none;border-radius:8px;padding:10px;font-size:14px;cursor:pointer">Cancel</button>
+    </div>
+  </div>`;
+  document.body.appendChild(dlg);
+  dlg._range=range;
+  setTimeout(()=>g('linkUrlIn')?.focus(),100);
+}
+function confirmLink(){
+  const dlg=g('linkDialog');if(!dlg)return;
+  const url=g('linkUrlIn')?.value?.trim();
+  dlg.remove();
+  if(!url)return;
+  const ed=g('writeEditor');ed.focus();
+  try{
+    if(dlg._range){const sel=window.getSelection();sel.removeAllRanges();sel.addRange(dlg._range);}
+    document.execCommand('createLink',false,url);
+  }catch(e){
+    // fallback: insert link text
+    document.execCommand('insertHTML',false,`<a href="${url}" target="_blank">${url}</a>`);
+  }
+}
+function wcUpdate(){const t=(g('writeEditor').innerText||'').trim();const n=t?t.split(/\s+/).filter(Boolean).length:0;const lbl=n+' '+(n===1?'word':'words');g('writeWcDisplay').textContent=lbl;}
+
+// ── MOOD ──
+function updateMoodChip(){const chip=g('writeMoodChip');const lbl=g('writeMoodLabel');if(selMood){lbl.textContent=selMood;chip.classList.add('set');}else{lbl.textContent='Add mood';chip.classList.remove('set');}}
+function openMoodSheet(){g('moodChips').innerHTML=MOODS.map(m=>`<button class="moodChip${selMood===m?' on':''}" onclick="pickMood('${m}')">${m}</button>`).join('');g('moodSheet').classList.add('show');}
+function closeMoodSheet(){g('moodSheet').classList.remove('show');}
+function pickMood(m){selMood=selMood===m?null:m;updateMoodChip();closeMoodSheet();}
+
+// ── ELLIPSIS MENU ──
+function openEllipsis(ctx){
+  ellipsisContext=ctx;
+  const e=activeId?entries.find(x=>x.id===activeId):null;
+  const isFav=e?.fav;const isPin=e?.pinned;
+  const items=ctx==='write'?[
+    {icon:'<line x1="20.59" y1="13.41" x2="7.5" y2="13.41"/><line x1="4" y1="20" x2="20" y2="4"/>',label:'Tag',action:'tagEntry()'},
+    {icon:'<polyline points="8 6 2 12 8 18"/>',label:'Cancel & Close',action:'cancelWrite()'},
+    {icon:'<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/>',label:'Delete entry',action:'deleteCurrentEntry()',danger:true}
+  ]:[
+    {icon:'<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>',label:isFav?'Remove Favourite':'Add to Favourites',action:'toggleFav()'},
+    {icon:'<line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 00-1.11-1.79l-1.78-.9A2 2 0 0115 10.76V6h1a2 2 0 000-4H8a2 2 0 000 4h1v4.76a2 2 0 01-1.11 1.79l-1.78.9A2 2 0 005 15.24z"/>',label:isPin?'Unpin':'Pin Entry',action:'togglePin()'},
+    {icon:'<line x1="20.59" y1="13.41" x2="7.5" y2="13.41"/><line x1="4" y1="20" x2="20" y2="4"/>',label:'Tag Entry',action:'tagEntry()'},
+    {icon:'<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>',label:'Entry Info',action:'showEntryInfo()'},
+    {icon:'<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/>',label:'Delete Entry',action:'deleteCurrentEntry()',danger:true}
+  ];
+  g('ellipsisPanel').innerHTML=items.map(item=>`<div class="ellipsisItem${item.danger?' danger':''}" onclick="${item.action};closeEllipsis()"><svg viewBox="0 0 24 24">${item.icon}</svg>${item.label}</div>`).join('');
+  g('ellipsisSheet').classList.add('show');
+}
+function closeEllipsis(){g('ellipsisSheet').classList.remove('show');}
+function tagEntry(){const tag=prompt('Add tag:');if(tag&&tag.trim()){const e=entries.find(x=>x.id===activeId);if(e){e.tags=[...(e.tags||[]),tag.trim()];persist();if(g('readScreen').classList.contains('active'))openEntry(activeId);}}}
+function showEntryInfo(){const e=entries.find(x=>x.id===activeId);if(!e)return;alert(`Created: ${fmtDate(e.createdAt)}\nUpdated: ${fmtDate(e.updatedAt)}\nWords: ${wc(e.body)}\nLocation: ${e.location||'—'}`);}
+
+// ── LOCATION ──
+function getLocation(){
+  if(!navigator.geolocation){alert('Geolocation not supported.');return;}
+  g('writeLocLabel').textContent='Getting…';
+  g('writeLocChip').classList.remove('set');
+  navigator.geolocation.getCurrentPosition(pos=>{
+    draftLat=pos.coords.latitude;draftLon=pos.coords.longitude;
+    const lat=draftLat,lon=draftLon;
+    fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`)
+      .then(r=>r.json()).then(d=>{
+        const city=d.address?.city||d.address?.town||d.address?.village||d.address?.county||'';
+        const country=d.address?.country||'';
+        draftLoc=city?`${city}, ${country}`:country||`${lat.toFixed(3)}, ${lon.toFixed(3)}`;
+        g('writeLocLabel').textContent=draftLoc;
+        g('writeLocChip').classList.add('set');
+      }).catch(()=>{
+        draftLoc=`${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+        g('writeLocLabel').textContent=draftLoc;
+        g('writeLocChip').classList.add('set');
+      });
+  },err=>{
+    g('writeLocLabel').textContent='Location';
+    const msgs={1:'Permission denied. Enable location in browser settings.',2:'Position unavailable.',3:'Request timed out.'};
+    alert(msgs[err.code]||'Could not get location.');
+  },{timeout:10000,enableHighAccuracy:true});
+}
+
+// ── PHOTOS INLINE ──
+function triggerPhoto(){g('photoInput').click();}
+function handlePhotos(input){
+  Array.from(input.files).forEach(file=>{
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      const ed=g('writeEditor');ed.focus();
+      const img=document.createElement('img');img.src=ev.target.result;img.style.cssText='max-width:100%;border-radius:10px;margin:10px 0;display:block;cursor:zoom-in';
+      img.onclick=()=>{g('lightboxImg').src=img.src;g('lightbox').classList.add('show');};
+      const sel=window.getSelection();
+      if(sel&&sel.rangeCount&&ed.contains(sel.getRangeAt(0).commonAncestorContainer)){const r=sel.getRangeAt(0);r.deleteContents();r.insertNode(img);r.setStartAfter(img);r.setEndAfter(img);sel.removeAllRanges();sel.addRange(r);}
+      else ed.appendChild(img);
+      wcUpdate();
+    };reader.readAsDataURL(file);
+  });input.value='';
+}
+
+// ── TAGS AUTOCOMPLETE ──
+function onTagFocus(){
+  const val=g('writeTagsInput').value;
+  const parts=val.split(',');
+  const cur=(parts[parts.length-1]||'').trim().toLowerCase();
+  const used=parts.slice(0,-1).map(p=>p.trim()).filter(Boolean);
+  const box=g('tagSugBox');
+  const tags=allTags().filter(t=>!used.includes(t));
+  const matches=cur?tags.filter(t=>t.toLowerCase().startsWith(cur)):tags;
+  if(!matches.length){
+    // No existing tags yet — just hide
+    box.classList.remove('show');return;
+  }
+  box.innerHTML=matches.slice(0,8).map(t=>`<div class="tagSugItem" onmousedown="event.preventDefault()" onclick="pickTag('${esc(t)}')">${esc(t)}</div>`).join('');
+  box.classList.add('show');
+}
+function onTagInput(){onTagFocus();}
+function pickTag(t){const val=g('writeTagsInput').value;const parts=val.split(',');parts[parts.length-1]=' '+t;g('writeTagsInput').value=parts.join(',').replace(/^ ,/,'')+', ';hideSug();g('writeTagsInput').focus();}
+function hideSug(){g('tagSugBox').classList.remove('show');}
+
+// ── VOICE ──
+function openVoiceSheet(){g('voiceSheet').classList.add('show');}
+function closeVoiceSheet(){if(isRec)stopRec();g('voiceSheet').classList.remove('show');}
+function toggleRec(){if(isRec)stopRec();else startRec();}
+async function startRec(){
+  liveT='';g('vAudio').innerHTML='';g('vTranscript').textContent='Listening…';g('appendBtn').style.display='none';
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(SR){try{recog=new SR();recog.continuous=true;recog.interimResults=true;recog.onresult=ev=>{let t='';for(let i=0;i<ev.results.length;i++)t+=ev.results[i][0].transcript;liveT=t;g('vTranscript').textContent=t||'Listening…';};recog.start();}catch(e){}}
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+    chunks=[];
+    const mt=['audio/webm;codecs=opus','audio/webm','audio/ogg','audio/mp4',''].find(m=>!m||MediaRecorder.isTypeSupported(m))||'';
+    mediaRec=new MediaRecorder(stream,mt?{mimeType:mt}:{});
+    mediaRec.ondataavailable=e=>{if(e.data?.size>0)chunks.push(e.data);};
+    mediaRec.onstop=()=>{stream.getTracks().forEach(t=>t.stop());if(!chunks.length)return;const blob=new Blob(chunks,{type:mt||'audio/webm'});const url=URL.createObjectURL(blob);g('vAudio').innerHTML=`<audio controls src="${url}"></audio>`;if(liveT)g('appendBtn').style.display='inline-block';};
+    mediaRec.start(100);isRec=true;g('recBtn').textContent='⏹ Stop';g('recBtn').className='recOn blinking';
+  }catch(e){g('vTranscript').textContent='Microphone access denied.';}
+}
+function stopRec(){isRec=false;try{if(mediaRec?.state!=='inactive')mediaRec.stop();}catch(e){}try{recog?.stop();}catch(e){}g('recBtn').textContent='Record again';g('recBtn').className='recOff';g('recBtn').classList.remove('blinking');}
+function appendTranscript(){if(!liveT)return;const ed=g('writeEditor');ed.innerHTML+=(ed.innerHTML?'<p><br></p>':'')+`<p>${esc(liveT)}</p>`;wcUpdate();g('appendBtn').style.display='none';closeVoiceSheet();}
+
+// ── TEMPLATES ──
+function renderTmplGrid(){
+  const all=[...BUILTIN,...uTmpls];
+  g('tmplGrid').innerHTML=all.map(t=>`<div class="tmplCard${previewTmplId===t.id?' prev':''}" onclick="previewTmpl('${t.id}')"><div class="tmplCardIcon">${t.icon||'📝'}</div><div class="tmplCardName">${esc(t.name)}</div></div>`).join('');
+}
+function previewTmpl(id){const t=[...BUILTIN,...uTmpls].find(x=>x.id===id);if(!t)return;previewTmplId=id;g('tmplPreviewTitle').innerHTML=`${t.icon} <strong>${esc(t.name)}</strong>`;g('tmplPreviewBody').textContent=t.body;g('tmplPreview').classList.add('show');renderTmplGrid();}
+function clearTmplPreview(){previewTmplId=null;g('tmplPreview').classList.remove('show');renderTmplGrid();}
+function tmplToHtml(body){return body.split('\n').map(line=>{const t=line.trim();if(!t)return'<p><br></p>';if(t.endsWith('?')||t.endsWith(':'))return`<p><span class="wChip" contenteditable="false">${esc(t)}</span></p><p><br></p>`;return`<p>${esc(t)}</p>`;}).join('');}
+function usePreviewedTmpl(){const t=[...BUILTIN,...uTmpls].find(x=>x.id===previewTmplId);if(!t)return;g('writeEditor').innerHTML=tmplToHtml(t.body);closeTmplSheet();clearTmplPreview();wcUpdate();g('writeEditor').focus();}
+function openTmplSheet(){renderTmplGrid();g('tmplSheet').classList.add('show');}
+function closeTmplSheet(){g('tmplSheet').classList.remove('show');}
+
+// ── PROMPTS ──
+function allPrompts(){return[...customPrompts.map(p=>({text:p,custom:true})),...ALL_PROMPTS.map(p=>({text:p,custom:false}))];}
+// Store for prompt click lookup — avoids apostrophe escaping issues in onclick attrs
+let _promptCache=[];
+function renderPromptsScreen(){
+  _promptCache=allPrompts();
+  const all=_promptCache;
+  g('promptsScroll').innerHTML=`
+    <div style="padding:12px 12px 6px;display:flex;align-items:center;justify-content:space-between">
+      <span style="font-size:13px;font-weight:700;color:var(--t2)">${all.length} Prompts</span>
+      <button onclick="addCustomPrompt()" style="background:var(--acc);color:#fff;border:none;border-radius:20px;padding:6px 14px;font-size:13px;font-weight:600;cursor:pointer">+ Add prompt</button>
+    </div>
+    ${all.map((p,i)=>`<div class="promptItem" style="display:flex;gap:10px;align-items:flex-start">
+      <div style="flex:1" onclick="promptClickFromList(${i})">
+        <div class="promptItemText">${esc(p.text)}</div>
+        <div class="promptItemBtn">Write about this →</div>
+      </div>
+      ${p.custom?`<button onclick="deleteCustomPrompt(${i-customPrompts.length<0?i:i})" style="background:none;border:none;color:var(--t3);font-size:18px;cursor:pointer;padding:0;flex-shrink:0;line-height:1;margin-top:2px">✕</button>`:''}
+    </div>`).join('')}`;
+}
+function promptClickFromList(i){
+  const p=_promptCache[i];if(!p)return;
+  openWrite(null,p.text,p.text);sNav('today');
+}
+function addCustomPrompt(){
+  const text=prompt('Enter your custom prompt:');
+  if(!text||!text.trim())return;
+  customPrompts.unshift(text.trim());
+  persistP();renderPromptsScreen();
+}
+function deleteCustomPrompt(idx){
+  // idx is position in allPrompts() — custom ones come first
+  if(idx<customPrompts.length){customPrompts.splice(idx,1);persistP();renderPromptsScreen();}
+}
+let _sheetPromptCache=[];
+function showPromptsSheet(){
+  _sheetPromptCache=allPrompts();
+  g('promptList').innerHTML=_sheetPromptCache.map((p,i)=>`<div class="promptListItem" onclick="sheetPromptWrite(${i})"><div class="promptListItemText">${esc(p.text)}</div><div class="promptListItemBtn">Write about this →</div></div>`).join('');
+  g('promptSheet').classList.add('show');
+}
+function sheetPromptWrite(i){const p=_sheetPromptCache[i];if(!p)return;openWrite(null,p.text,p.text);closePromptSheet();}
+function showPromptsSheetForWrite(){
+  _sheetPromptCache=allPrompts();
+  g('promptList').innerHTML=_sheetPromptCache.map((p,i)=>`<div class="promptListItem" onclick="sheetPromptUse(${i})"><div class="promptListItemText">${esc(p.text)}</div><div class="promptListItemBtn">Use this prompt →</div></div>`).join('');
+  g('promptSheet').classList.add('show');
+}
+function sheetPromptUse(i){const p=_sheetPromptCache[i];if(!p)return;usePromptInWrite(p.text);if(!g('writeTitleIn').value.trim())g('writeTitleIn').value=p.text;closePromptSheet();}
+function usePromptInWrite(p){g('promptBarText').textContent=p;g('promptBar').classList.add('show');}
+function closePromptSheet(){g('promptSheet').classList.remove('show');}
+
+// ── INSIGHTS ──
+function renderInsights(){
+  const el=g('insightsScroll');if(!el)return;
+  if(!entries.length){el.innerHTML=`<div class="emptyInsight">✦<br><br>Start journaling to see your insights appear here.<br>They'll tell you a story about yourself over time.</div>`;return;}
+  const totalEntries=entries.length;
+  const totalWords=entries.reduce((a,e)=>a+wc(e.body),0);
+  const avgWords=totalEntries?Math.round(totalWords/totalEntries):0;
+  function streakCount(){const days=new Set(entries.map(e=>new Date(e.createdAt).toLocaleDateString('en-CA')));let s=0,d=new Date(new Date().setHours(0,0,0,0));for(let i=0;i<365;i++){if(days.has(d.toLocaleDateString('en-CA')))s++;else if(i>0)break;d.setDate(d.getDate()-1);}return s;}
+  const streak=streakCount();
+  const longest=entries.reduce((a,b)=>wc(b.body)>wc(a.body)?b:a,entries[0]);
+  const dowCounts=[0,0,0,0,0,0,0];entries.forEach(e=>dowCounts[new Date(e.createdAt).getDay()]++);
+  const topDow=dowCounts.indexOf(Math.max(...dowCounts));
+  const dowNames=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const hourCounts=Array(24).fill(0);entries.forEach(e=>hourCounts[new Date(e.createdAt).getHours()]++);
+  const topHour=hourCounts.indexOf(Math.max(...hourCounts));
+  const ampm=topHour===0?'12am':topHour<12?`${topHour}am`:topHour===12?'12pm':`${topHour-12}pm`;
+  const moodMap={};entries.filter(e=>e.mood).forEach(e=>{moodMap[e.mood]=(moodMap[e.mood]||0)+1;});
+  const moodSorted=Object.entries(moodMap).sort((a,b)=>b[1]-a[1]);
+  const topMood=moodSorted[0];
+  const moodTotal=entries.filter(e=>e.mood).length;
+  const tagMap={};entries.forEach(e=>(e.tags||[]).forEach(t=>{tagMap[t]=(tagMap[t]||0)+1;}));
+  const tagSorted=Object.entries(tagMap).sort((a,b)=>b[1]-a[1]);
+  const locMap={};entries.filter(e=>e.location).forEach(e=>{locMap[e.location]=(locMap[e.location]||0)+1;});
+  const locSorted=Object.entries(locMap).sort((a,b)=>b[1]-a[1]);
+  const now=new Date();
+  const monthMap={};entries.forEach(e=>{const k=new Date(e.createdAt).toLocaleDateString('en-CA',{year:'numeric',month:'short'});monthMap[k]=(monthMap[k]||0)+1;});
+  const monthKeys=Object.keys(monthMap).sort();const monthMax=Math.max(...Object.values(monthMap),1);
+  const thisMonth=now.toLocaleDateString('en-CA',{year:'numeric',month:'short'});
+  const lastMonthD=new Date(now.getFullYear(),now.getMonth()-1,1);
+  const lastMonth=lastMonthD.toLocaleDateString('en-CA',{year:'numeric',month:'short'});
+  const thisMonthCount=monthMap[thisMonth]||0;const lastMonthCount=monthMap[lastMonth]||0;
+  const trend=thisMonthCount>lastMonthCount?'↑ more than last month':thisMonthCount<lastMonthCount?'↓ fewer than last month':'same as last month';
+  const quips=[];
+  if(topMood)quips.push(`You feel <strong style="color:var(--acc)">${topMood[0]}</strong> most often — your writing reflects that.`);
+  if(topDow!==undefined)quips.push(`${dowNames[topDow]}s seem to be your day. Something about it opens you up.`);
+  if(streak>=3)quips.push(`${streak} days in a row. Consistency is a form of self-respect.`);
+  if(avgWords>100)quips.push(`You average ${avgWords} words per entry — you think deeply when you write.`);
+  if(avgWords<50&&avgWords>0)quips.push(`Short entries still count. Even a sentence is a moment captured.`);
+  const quip=quips[Math.floor(Math.random()*quips.length)]||'Every entry is a data point in the story of you.';
+
+  el.innerHTML=`<div style="height:6px"></div>
+  <div class="insightSection">
+    <div class="insightSectionTitle">Overview</div>
+    <div class="insightGrid">
+      <div class="insightCard"><div class="insightLabel">Total Entries</div><div class="insightNum">${totalEntries}</div><div class="insightSub">${thisMonthCount} this month · ${trend}</div></div>
+      <div class="insightCard teal"><div class="insightLabel">Words Written</div><div class="insightNum">${totalWords>999?(totalWords/1000).toFixed(1)+'k':totalWords}</div><div class="insightSub">avg ${avgWords} / entry</div></div>
+      <div class="insightCard gold"><div class="insightLabel">Current Streak</div><div style="font-size:24px;margin-bottom:2px">${streak>0?'🔥':'–'}</div><div class="insightNum" style="font-size:20px">${streak} day${streak!==1?'s':''}</div></div>
+      <div class="insightCard"><div class="insightLabel">Longest Entry</div><div class="insightNum" style="font-size:18px">${wc(longest?.body||'')} words</div><div class="insightSub" style="overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${esc(longest?.title||'Untitled')}</div></div>
+    </div>
+  </div>
+  <div class="insightSection">
+    <div class="insightSectionTitle">When you write</div>
+    <div class="insightGrid">
+      <div class="insightCard teal"><div class="insightLabel">Favourite Day</div><div class="insightNum" style="font-size:17px">${dowNames[topDow]}</div><div class="insightSub">${dowCounts[topDow]} entries</div></div>
+      <div class="insightCard"><div class="insightLabel">Favourite Time</div><div class="insightNum" style="font-size:20px">${ampm}</div><div class="insightSub">${hourCounts[topHour]} entries</div></div>
+    </div>
+    ${monthKeys.length>1?`<div class="insightCard wide" style="padding:14px"><div class="insightLabel" style="margin-bottom:10px">Monthly Activity</div><div style="display:flex;align-items:flex-end;gap:3px;height:52px">${monthKeys.map(k=>`<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px"><div style="width:100%;background:var(--acc);opacity:.7;border-radius:3px 3px 0 0;height:${Math.max(4,Math.round((monthMap[k]/monthMax)*44))}px"></div><div style="font-size:8px;color:var(--t3)">${k.split(' ')[0].slice(0,3)}</div></div>`).join('')}</div></div>`:''}
+  </div>
+  ${moodSorted.length?`<div class="insightSection">
+    <div class="insightSectionTitle">Your Emotional Landscape</div>
+    <div class="insightCard wide" style="margin-bottom:10px"><div class="insightLabel">Most felt</div><div style="font-size:20px;font-weight:700;color:var(--acc);margin-bottom:4px">${topMood[0]}</div><div class="insightSub">${topMood[1]} entries · ${Math.round((topMood[1]/moodTotal)*100)}% of logged moods</div><div class="insightBar"><div class="insightBarFill" style="width:${Math.round((topMood[1]/moodTotal)*100)}%"></div></div></div>
+    <div class="insightCard wide" style="padding:14px">${moodSorted.slice(0,6).map(([m,c])=>`<div class="moodRow"><span class="moodRowLabel">${m}</span><div style="display:flex;align-items:center;gap:8px"><div style="width:80px;background:var(--bg3);border-radius:4px;height:4px;overflow:hidden"><div style="height:100%;border-radius:4px;background:var(--acc);width:${Math.round((c/moodSorted[0][1])*100)}%"></div></div><span class="moodRowCount">${c}</span></div></div>`).join('')}</div>
+  </div>`:''}
+  ${tagSorted.length?`<div class="insightSection"><div class="insightSectionTitle">Top Tags</div><div class="insightCard wide" style="padding:14px"><div style="display:flex;flex-wrap:wrap;gap:7px">${tagSorted.slice(0,12).map(([t,c])=>`<div style="background:var(--acc-soft);border:1px solid var(--acc);border-radius:20px;padding:5px 12px;font-size:12px;font-weight:600;color:var(--acc);display:flex;align-items:center;gap:5px">#${esc(t)}<span style="background:var(--acc);color:#111;border-radius:10px;padding:1px 6px;font-size:10px;font-weight:700">${c}</span></div>`).join('')}</div></div></div>`:''}
+  ${locSorted.length?`<div class="insightSection"><div class="insightSectionTitle">Where you write most</div><div class="insightCard wide" style="padding:14px">${locSorted.slice(0,5).map(([l,c],i)=>`<div class="locRow"><div class="locRowDot" style="background:${i===0?'var(--acc)':'var(--acc2)'}"></div><span class="locRowName">${esc(l)}</span><span class="locRowCount">${c}</span></div>`).join('')}</div></div>`:''}
+  <div class="insightSection"><div class="insightCard wide" style="background:linear-gradient(135deg,rgba(196,132,154,.12),rgba(127,179,168,.08));border-color:var(--acc)"><div style="font-size:10px;color:var(--acc);font-weight:700;text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px">Your pattern says</div><div style="font-size:15px;color:var(--t1);font-weight:500;line-height:1.6">${quip}</div></div></div>`;
+}
+
+// ── CALENDAR ──
+function renderCal(){
+  const first=new Date(calY,calM,1),dim=new Date(calY,calM+1,0).getDate(),sdow=first.getDay();
+  const mName=first.toLocaleDateString('en-CA',{month:'long',year:'numeric'});
+  const eMap={};entries.forEach(e=>{const d=new Date(e.createdAt);const k=`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;if(!eMap[k])eMap[k]={mood:null};if(!eMap[k].mood&&e.mood)eMap[k].mood=e.mood;});
+  let cells='';for(let i=0;i<sdow;i++)cells+=`<div class="calDay"></div>`;
+  for(let d=1;d<=dim;d++){const k=`${calY}-${calM}-${d}`;const info=eMap[k];const isT=sameDay(new Date(calY,calM,d),TODAY);cells+=`<div class="calDay${info?' has':''}${isT?' isToday':''}" ${info?`onclick="calClick(${calY},${calM},${d})"`:''}>
+    <span>${d}</span>${info?.mood?`<span class="calMood">${info.mood.slice(0,5)}</span>`:info?`<span class="calDot"></span>`:''}
+  </div>`;}
+  g('calWrap').innerHTML=`<div class="calHead"><button class="calNavBtn" onclick="calPrev()">‹</button><span class="calHeadTitle">${mName}</span><button class="calNavBtn" onclick="calNext()">›</button></div><div class="calGrid">${['Su','Mo','Tu','We','Th','Fr','Sa'].map(d=>`<div class="calDow">${d}</div>`).join('')}${cells}</div><div style="margin-top:12px;font-size:12px;color:var(--t3);text-align:center">Tap a highlighted day to open its entry</div>`;
+}
+function calPrev(){if(calM===0){calY--;calM=11;}else calM--;renderCal();}
+function calNext(){if(calM===11){calY++;calM=0;}else calM++;renderCal();}
+function calClick(y,m,d){
+  const day=new Date(y,m,d);
+  const es=entries.filter(e=>sameDay(new Date(e.createdAt),day)).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+  if(!es.length)return;
+  if(es.length===1){openEntry(es[0].id);return;}
+  // Multiple entries — show picker sheet
+  const sheet=document.createElement('div');
+  sheet.id='calPickerSheet';
+  sheet.style.cssText='position:fixed;inset:0;z-index:600;display:flex;flex-direction:column;justify-content:flex-end';
+  sheet.innerHTML=`<div onclick="this.parentElement.remove()" style="flex:1;background:rgba(0,0,0,.6)"></div>
+    <div style="background:var(--bg2);border-radius:18px 18px 0 0;padding:16px 14px calc(env(safe-area-inset-bottom)+20px);max-height:60vh;overflow-y:auto">
+      <div style="font-size:15px;font-weight:700;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">
+        ${day.toLocaleDateString('en-CA',{weekday:'long',month:'long',day:'numeric'})}
+        <button onclick="this.closest('#calPickerSheet').remove()" style="color:var(--t3);font-size:18px;background:none;border:none;cursor:pointer">✕</button>
+      </div>
+      ${es.map(e=>`<div onclick="document.getElementById('calPickerSheet').remove();openEntry('${e.id}')" style="padding:12px;background:var(--bg3);border-radius:10px;margin-bottom:8px;cursor:pointer;border:1px solid var(--bd)">
+        <div style="font-size:14px;font-weight:600;margin-bottom:3px">${e.title||'Untitled'}</div>
+        <div style="font-size:12px;color:var(--t3)">${new Date(e.createdAt).toLocaleTimeString('en-CA',{hour:'2-digit',minute:'2-digit'})} · ${wc(e.body)} words${e.mood?' · '+e.mood:''}</div>
+      </div>`).join('')}
+    </div>`;
+  document.body.appendChild(sheet);
+}
+
+// ── MEDIA ──
+function renderMedia(){
+  const grid=g('mediaGrid');if(!grid)return;
+  const items=[];
+  entries.forEach(e=>{
+    // Images
+    (e.body||'').replace(/<img[^>]+src="([^"]+)"/g,(_,src)=>items.push({type:'img',src,entryId:e.id,title:e.title||'Untitled',date:e.createdAt}));
+    // Links
+    (e.body||'').replace(/<a[^>]+href="([^"]+)"[^>]*>([^<]*)<\/a>/g,(_,href,text)=>items.push({type:'link',src:href,label:text||href,entryId:e.id,title:e.title||'Untitled',date:e.createdAt}));
+    // Audio (base64 blob urls stored as data attributes) — just flag the entry
+    if((e.body||'').includes('<audio'))items.push({type:'audio',entryId:e.id,title:e.title||'Untitled',date:e.createdAt});
+  });
+  if(!items.length){
+    grid.style.display='flex';grid.style.flexDirection='column';grid.style.alignItems='center';grid.style.justifyContent='center';grid.style.padding='40px';
+    grid.innerHTML='<div style="text-align:center;color:var(--t3);font-size:14px">No media yet.<br>Add photos, links, or audio to your entries.</div>';return;
+  }
+  grid.style.display='';grid.style.flexDirection='';grid.style.alignItems='';grid.style.justifyContent='';grid.style.padding='';
+  const imgs=items.filter(i=>i.type==='img');
+  const others=items.filter(i=>i.type!=='img');
+  let html='';
+  if(imgs.length){
+    html+=`<div style="grid-column:span 3;padding:10px 12px 4px;font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.08em">Photos (${imgs.length})</div>`;
+    html+=imgs.map(p=>`<div class="mediaThumb" onclick="mediaOpen('${p.entryId}','${p.src}')" title="${esc(p.title)}" style="position:relative"><img src="${p.src}" alt=""><div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.7));padding:6px;font-size:10px;color:#fff;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${esc(p.title)}</div></div>`).join('');
+  }
+  if(others.length){
+    html+=`<div style="grid-column:span 3;padding:14px 12px 4px;font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.08em">Other Media (${others.length})</div>`;
+    html+=`<div style="grid-column:span 3;padding:0 8px">`+others.map(i=>{
+      if(i.type==='link')return`<div onclick="openEntry('${i.entryId}')" style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--bg2);border-radius:10px;margin-bottom:6px;cursor:pointer;border:1px solid var(--bd)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg><div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${esc(i.label)}</div><div style="font-size:11px;color:var(--t3)">${esc(i.title)}</div></div></div>`;
+      if(i.type==='audio')return`<div onclick="openEntry('${i.entryId}')" style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--bg2);border-radius:10px;margin-bottom:6px;cursor:pointer;border:1px solid var(--bd)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--acc2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/></svg><div style="flex:1"><div style="font-size:12px;font-weight:600">Voice Note</div><div style="font-size:11px;color:var(--t3)">${esc(i.title)}</div></div></div>`;
+      return'';
+    }).join('')+'</div>';
+  }
+  grid.innerHTML=html;
+}
+function mediaOpen(entryId,src){
+  // Show lightbox first, then go to entry
+  g('lightboxImg').src=src;
+  g('lightbox').classList.add('show');
+  // Add "View entry" button to lightbox
+  const existing=document.getElementById('lbEntryBtn');if(existing)existing.remove();
+  const btn=document.createElement('button');
+  btn.id='lbEntryBtn';
+  btn.textContent='View entry →';
+  btn.style.cssText='position:fixed;bottom:calc(env(safe-area-inset-bottom)+20px);left:50%;transform:translateX(-50%);background:var(--acc);color:#fff;border:none;border-radius:20px;padding:10px 24px;font-size:14px;font-weight:600;cursor:pointer;z-index:1001;font-family:var(--font)';
+  btn.onclick=(e)=>{e.stopPropagation();g('lightbox').classList.remove('show');btn.remove();openEntry(entryId);};
+  document.body.appendChild(btn);
+  g('lightbox').onclick=(e)=>{if(e.target===g('lightbox')){g('lightbox').classList.remove('show');btn.remove();g('lightbox').onclick=()=>g('lightbox').classList.remove('show');}};
+}
+
+// ── MAP ──
+let leafletMap=null;
+function renderMap(){
+  const withLoc=entries.filter(e=>e.location&&e._lat&&e._lon);
+  const mapEl=g('mapEl');
+  if(!mapEl)return;
+  if(!withLoc.length){
+    mapEl.innerHTML='<div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:40px;text-align:center;color:var(--t3)"><div style="font-size:32px;margin-bottom:8px">📍</div><div style="font-size:14px;font-weight:600;color:var(--t2)">No mapped entries yet</div><div style="font-size:13px;line-height:1.6">Tap the location chip when writing an entry to save where you are. Entries will appear as pins on this map.</div></div>';
+    mapEl.style.display='flex';return;
+  }
+  // Set up map container
+  mapEl.innerHTML='';
+  mapEl.style.display='block';
+  mapEl.style.height='100%';
+  // Destroy previous instance
+  if(leafletMap){try{leafletMap.remove();}catch(e){}leafletMap=null;}
+  // Init Leaflet
+  try{
+    leafletMap=L.map(mapEl,{zoomControl:true,attributionControl:true});
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap',maxZoom:18}).addTo(leafletMap);
+    const bounds=[];
+    const pinkIcon=L.divIcon({className:'',html:`<div style="width:28px;height:28px;background:var(--acc);border:3px solid #fff;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center"><svg width="12" height="12" viewBox="0 0 24 24" fill="white" stroke="none"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/></svg></div>`,iconSize:[28,28],iconAnchor:[14,28],popupAnchor:[0,-28]});
+    withLoc.forEach(e=>{
+      const m=L.marker([e._lat,e._lon],{icon:pinkIcon}).addTo(leafletMap);
+      m.bindPopup(`<div style="font-family:system-ui;min-width:160px"><div style="font-weight:700;font-size:14px;margin-bottom:4px">${e.title||'Untitled'}</div><div style="font-size:11px;color:#666;margin-bottom:8px">${new Date(e.createdAt).toLocaleDateString()}</div><button onclick="window._openFromMap('${e.id}')" style="background:#c4849a;color:#fff;border:none;border-radius:8px;padding:5px 12px;font-size:12px;cursor:pointer;width:100%">Open entry</button></div>`);
+      bounds.push([e._lat,e._lon]);
+    });
+    window._openFromMap=(id)=>{leafletMap.closePopup();openEntry(id);};
+    if(bounds.length)leafletMap.fitBounds(bounds,{padding:[30,30]});
+  }catch(e){mapEl.innerHTML='<div style="padding:40px;text-align:center;color:var(--t3)">Map unavailable. Check internet connection.</div>';}
+}
+
+// ── TEMPLATE MANAGER ──
+function renderTmgrList(){
+  const list=g('tmgrList');if(!list)return;
+  g('tmgrForm').style.display='none';
+  if(!uTmpls.length){list.innerHTML=`<div style="font-size:13px;color:var(--t3);padding:12px 0">No custom templates yet.</div>`;return;}
+  list.innerHTML=uTmpls.map(t=>`<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--bd)"><span>${t.icon||'📝'}</span><span style="flex:1;font-size:14px">${esc(t.name)}</span><button onclick="editTmpl('${t.id}')" style="font-size:12px;padding:4px 10px;border:1px solid var(--bd);border-radius:6px;color:var(--t2);cursor:pointer">Edit</button><button onclick="deleteTmpl('${t.id}')" style="font-size:12px;padding:4px 10px;border:1px solid var(--danger);border-radius:6px;color:var(--danger);cursor:pointer">Del</button></div>`).join('');
+}
+function newTmpl(){editTmplId=null;g('tmgrFTitle').textContent='NEW TEMPLATE';g('fIcon').value='📝';g('fName').value='';g('fBody').value='';g('tmgrForm').style.display='block';}
+function editTmpl(id){const t=uTmpls.find(x=>x.id===id);if(!t)return;editTmplId=id;g('tmgrFTitle').textContent='EDIT TEMPLATE';g('fIcon').value=t.icon||'📝';g('fName').value=t.name;g('fBody').value=t.body||'';g('tmgrForm').style.display='block';}
+function saveTmpl(){const name=g('fName').value.trim();const body=g('fBody').value;if(!name)return;const t={id:editTmplId||Date.now().toString(),name,icon:g('fIcon').value||'📝',body};if(editTmplId)uTmpls=uTmpls.map(x=>x.id===editTmplId?t:x);else uTmpls=[...uTmpls,t];persistT();renderTmgrList();renderTmplGrid();g('tmgrForm').style.display='none';editTmplId=null;}
+function cancelTmpl(){g('tmgrForm').style.display='none';editTmplId=null;}
+function deleteTmpl(id){if(!confirm('Delete this template?'))return;uTmpls=uTmpls.filter(x=>x.id!==id);persistT();renderTmgrList();renderTmplGrid();}
+
+
+function renderTagManager(){
+  const list=g('tagManagerList');if(!list)return;
+  const tagMap={};
+  entries.forEach(e=>(e.tags||[]).forEach(t=>{tagMap[t]=(tagMap[t]||0)+1;}));
+  const tags=Object.entries(tagMap).sort((a,b)=>b[1]-a[1]);
+  if(!tags.length){list.innerHTML='<div style="font-size:13px;color:var(--t3)">No tags yet.</div>';return;}
+  list.innerHTML=tags.map(([t,c])=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--bd)">
+      <span style="flex:1;font-size:13px;color:var(--t2)">#${esc(t)}</span>
+      <span style="font-size:11px;color:var(--t3)">${c} entr${c===1?'y':'ies'}</span>
+      <button onclick="renameTag('${esc(t)}')" style="font-size:11px;padding:3px 8px;border:1px solid var(--bd);border-radius:6px;color:var(--t2);cursor:pointer;background:none">Rename</button>
+      <button onclick="deleteTag('${esc(t)}')" style="font-size:11px;padding:3px 8px;border:1px solid var(--danger);border-radius:6px;color:var(--danger);cursor:pointer;background:none">Delete</button>
+    </div>`).join('');
+}
+function renameTag(oldTag){
+  const newTag=prompt(`Rename "#${oldTag}" to:`);
+  if(!newTag||!newTag.trim()||newTag.trim()===oldTag)return;
+  entries=entries.map(e=>({...e,tags:(e.tags||[]).map(t=>t===oldTag?newTag.trim():t)}));
+  persist();renderTagManager();renderList();
+}
+function deleteTag(tag){
+  if(!confirm(`Delete tag "#${tag}" from all entries?`))return;
+  entries=entries.map(e=>({...e,tags:(e.tags||[]).filter(t=>t!==tag)}));
+  persist();renderTagManager();renderList();
+}
+
+// ── EXPORT / IMPORT ──
+function exportData(){const d=JSON.stringify({entries,templates:uTmpls,exportedAt:new Date().toISOString()},null,2);const a=document.createElement('a');a.href='data:application/json,'+encodeURIComponent(d);a.download='journal-'+new Date().toISOString().slice(0,10)+'.json';a.click();}
+function importData(input){const file=input.files[0];if(!file)return;const reader=new FileReader();reader.onload=ev=>{try{const d=JSON.parse(ev.target.result);if(d.entries){entries=[...d.entries,...entries];persist();}if(d.templates){uTmpls=[...d.templates,...uTmpls];persistT();}renderList();renderTmplGrid();initToday();alert('Imported '+(d.entries?.length||0)+' entries.');}catch(e){alert('Invalid JSON.');}};reader.readAsText(file);input.value='';}
+
+load();
+</script>
+</body>
+</html>
